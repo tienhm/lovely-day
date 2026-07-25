@@ -601,8 +601,25 @@
       chrome.storage.local.set({ [SYNC_KEY]: dayCache });
     }
 
-    document.addEventListener('visibilitychange', () => { if (document.hidden) saveTimer(); });
-    window.addEventListener('pagehide', saveTimer); // save trước khi navigate/close
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        saveTimer(); // lưu khi tab bị ẩn
+      } else {
+        // Khi tab visible trở lại: lấy giá trị lớn nhất giữa memory và storage
+        // (tab khác có thể đã đếm cao hơn trong lúc tab này bị ẩn)
+        chrome.storage.local.get([SYNC_KEY], result => {
+          const fresh = result[SYNC_KEY] || {};
+          const stored = Math.round(fresh[STORE_HOST] || 0);
+          if (stored > seconds) {
+            seconds = stored;
+            dayCache = fresh;
+            timeEl.textContent = fmtDisplay();
+            updateColor();
+          }
+        });
+      }
+    });
+    window.addEventListener('pagehide', saveTimer);
 
     // Cập nhật ngay khi popup thay đổi limit
     chrome.storage.onChanged.addListener((changes, area) => {
