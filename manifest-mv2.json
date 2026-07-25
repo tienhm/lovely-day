@@ -13,8 +13,6 @@
   "permissions": [
     "storage",
     "tabs",
-    "webRequest",
-    "webRequestBlocking",
     "*://*/*"
   ],
   "background": {
