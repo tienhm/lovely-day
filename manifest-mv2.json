@@ -28,5 +28,15 @@
   "browser_action": {
     "default_popup": "popup.html",
     "default_title": "__MSG_ext_action_title__"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "a-lovely-day@extension",
+      "strict_min_version": "121.0",
+      "data_collection_permissions": {
+        "required": [],
+        "optional": []
+      }
+    }
   }
 }

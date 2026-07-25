@@ -65,7 +65,13 @@ function renderTodaySites(data) {
     return b[1] - a[1];
   });
   const el = document.getElementById('todaySites');
-  if (!sites.length) { el.innerHTML = `<div class="empty">${t('popup_no_data')}</div>`; return; }
+  if (!sites.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = t('popup_no_data');
+    el.replaceChildren(empty);
+    return;
+  }
   const max = Math.max(...sites.map(([, v]) => v), 1);
   el.innerHTML = sites.map(([domain, secs]) => `
     <div class="site-row">
