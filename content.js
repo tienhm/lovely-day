@@ -32,6 +32,7 @@
   // ─── Lock ────────────────────────────────────────────────────
   // Dùng chrome.storage.local thay localStorage để Facebook JS không xóa được
   const LOCK_STORAGE_KEY = 'ald_lock_' + HOSTNAME;
+  const LIMITS_KEY       = 'ald_limits';
 
   // Ẩn trang ngay lập tức trong lúc check lock (tránh flash nội dung)
   const lockCheckStyle = document.createElement('style');
@@ -536,8 +537,7 @@
     }
 
     // ── Timer — chrome.storage.sync ──
-    const SYNC_KEY   = 'ald_' + todayStr();
-    const LIMITS_KEY = 'ald_limits';
+    const SYNC_KEY = 'ald_' + todayStr();
 
     function fmt(s) {
       s = Math.max(0, s);
