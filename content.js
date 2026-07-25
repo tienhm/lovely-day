@@ -582,30 +582,8 @@
     const GRACE_KEY = 'ald_grace_' + HOSTNAME;
     let graceUntil = 0;
 
-    // Timer từ local, limits từ sync, grace period từ local
-    chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
-      seconds = Math.round((localRes[SYNC_KEY] || {})[HOSTNAME] || 0);
-      const grace = localRes[GRACE_KEY];
-      if (grace && grace.until > Date.now()) {
-        graceUntil = grace.until;
-      } else if (grace) {
-        chrome.storage.local.remove(GRACE_KEY); // dọn grace hết hạn
-      }
-      chrome.storage.sync.get([LIMITS_KEY], syncRes => {
-        applyLimit(syncRes[LIMITS_KEY] || {});
-        timeEl.textContent = fmtDisplay();
-        updateColor();
-      });
-    });
-
-    // Cập nhật ngay khi popup thay đổi limit
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'sync' && changes[LIMITS_KEY]) {
-        applyLimit(changes[LIMITS_KEY].newValue || {});
-        timeEl.textContent = fmtDisplay();
-        updateColor();
-      }
-    });
+    // Ẩn giờ cho đến khi data load xong (tránh flash "00:00")
+    timeEl.style.visibility = 'hidden';
 
     function saveTimer() {
       chrome.storage.local.get([SYNC_KEY], result => {
@@ -617,26 +595,52 @@
 
     document.addEventListener('visibilitychange', () => { if (document.hidden) saveTimer(); });
 
-    setInterval(() => {
-      const paused = document.hidden;
-      dotEl.classList.toggle('paused', paused);
-      if (paused) return;
-      seconds++;
-      timeEl.textContent = fmtDisplay();
-      updateColor();
-      // Hết giờ → lock ngay
-      if (timeLimit !== null && seconds >= timeLimit) {
-        if (graceUntil && Date.now() < graceUntil) {
-          // Đang trong grace period — chưa lock
-        } else {
-          graceUntil = 0;
-          saveTimer();
-          lockForToday();
-          return;
-        }
+    // Cập nhật ngay khi popup thay đổi limit
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'sync' && changes[LIMITS_KEY]) {
+        applyLimit(changes[LIMITS_KEY].newValue || {});
+        timeEl.textContent = fmtDisplay();
+        updateColor();
       }
-      if (seconds % 30 === 0) saveTimer();
-    }, 1000);
+    });
+
+    // Load timer + grace từ local, limits từ sync — khởi động interval sau khi có đủ data
+    chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
+      seconds = Math.round((localRes[SYNC_KEY] || {})[HOSTNAME] || 0);
+      const grace = localRes[GRACE_KEY];
+      if (grace && grace.until > Date.now()) {
+        graceUntil = grace.until;
+      } else if (grace) {
+        chrome.storage.local.remove(GRACE_KEY);
+      }
+      chrome.storage.sync.get([LIMITS_KEY], syncRes => {
+        applyLimit(syncRes[LIMITS_KEY] || {});
+        timeEl.textContent = fmtDisplay();
+        timeEl.style.visibility = ''; // hiện giờ sau khi đã có data
+        updateColor();
+
+        // Interval chỉ khởi động SAU khi graceUntil và timeLimit đã sẵn sàng
+        setInterval(() => {
+          const paused = document.hidden;
+          dotEl.classList.toggle('paused', paused);
+          if (paused) return;
+          seconds++;
+          timeEl.textContent = fmtDisplay();
+          updateColor();
+          if (timeLimit !== null && seconds >= timeLimit) {
+            if (graceUntil && Date.now() < graceUntil) {
+              // Đang trong grace period — chưa lock
+            } else {
+              graceUntil = 0;
+              saveTimer();
+              lockForToday();
+              return;
+            }
+          }
+          if (seconds % 30 === 0) saveTimer();
+        }, 1000);
+      });
+    });
   }
 
   // ─── Async lock check ────────────────────────────────────────
