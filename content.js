@@ -20,7 +20,9 @@
   const DOMAIN = getSiteName(location.hostname);
 
   // Incognito/Private: dùng bộ đếm chung, không phân biệt URL
-  const isIncognito  = !!(chrome.extension && chrome.extension.inIncognitoContext);
+  let isIncognito = false;
+  try { isIncognito = !!(chrome.extension && chrome.extension.inIncognitoContext); } catch {}
+
   // STORE_HOST: key dùng trong storage — '__private__' cho incognito, real host bình thường
   const STORE_HOST   = isIncognito ? '__private__' : HOSTNAME;
   // DISPLAY_NAME: tên hiển thị trên clock và lock screen
@@ -596,8 +598,6 @@
     const GRACE_KEY = 'ald_grace_' + STORE_HOST;
     let graceUntil = 0;
 
-    // Ẩn giờ cho đến khi data load xong (tránh flash "00:00")
-    timeEl.style.visibility = 'hidden';
 
     // dayCache = {} (không null) để pagehide không mất seconds dù callback chưa xong
     let dayCache = {};
@@ -631,7 +631,6 @@
       chrome.storage.sync.get([LIMITS_KEY], syncRes => {
         applyLimit(syncRes[LIMITS_KEY] || {});
         timeEl.textContent = fmtDisplay();
-        timeEl.style.visibility = '';
         updateColor();
 
         // visibilitychange chỉ đăng ký SAU khi graceUntil/timeLimit sẵn sàng
