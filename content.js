@@ -551,7 +551,14 @@
     let timeLimit = null; // giây, null = không giới hạn
 
     function fmtDisplay() {
-      return timeLimit !== null ? fmt(timeLimit - seconds) : fmt(seconds);
+      if (timeLimit !== null) {
+        // Đang trong grace period → hiện thời gian grace còn lại
+        if (graceUntil && Date.now() < graceUntil) {
+          return fmt(Math.ceil((graceUntil - Date.now()) / 1000));
+        }
+        return fmt(Math.max(0, timeLimit - seconds));
+      }
+      return fmt(seconds);
     }
 
     function applyLimit(limits) {
