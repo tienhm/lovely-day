@@ -459,7 +459,7 @@
       <div id="ald-clock-label"><span id="ald-clock-dot"></span>${DISPLAY_NAME}</div>
       <div id="ald-clock-row">
         <div id="ald-clock-time">00:00</div>
-        <button id="ald-lock-btn" title="${t('lock_btn_title', [DISPLAY_NAME])}">${SVG_LOCK}</button>
+        ${isIncognito ? '' : `<button id="ald-lock-btn" title="${t('lock_btn_title', [DISPLAY_NAME])}">${SVG_LOCK}</button>`}
       </div>
     `;
     document.body.appendChild(widget);
