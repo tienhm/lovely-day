@@ -599,33 +599,14 @@
     // Ẩn giờ cho đến khi data load xong (tránh flash "00:00")
     timeEl.style.visibility = 'hidden';
 
-    // Giữ day object trong memory — save chỉ cần 1 lần set, không cần get trước
-    let dayCache = null;
+    // dayCache = {} (không null) để pagehide không mất seconds dù callback chưa xong
+    let dayCache = {};
 
     function saveTimer() {
-      if (dayCache === null) return; // chưa load xong lần đầu
       dayCache[STORE_HOST] = seconds;
       chrome.storage.local.set({ [SYNC_KEY]: dayCache });
     }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        saveTimer(); // lưu khi tab bị ẩn
-      } else {
-        // Khi tab visible trở lại: lấy giá trị lớn nhất giữa memory và storage
-        // (tab khác có thể đã đếm cao hơn trong lúc tab này bị ẩn)
-        chrome.storage.local.get([SYNC_KEY], result => {
-          const fresh = result[SYNC_KEY] || {};
-          const stored = Math.round(fresh[STORE_HOST] || 0);
-          if (stored > seconds) {
-            seconds = stored;
-            dayCache = fresh;
-            timeEl.textContent = fmtDisplay();
-            updateColor();
-          }
-        });
-      }
-    });
     window.addEventListener('pagehide', saveTimer);
 
     // Cập nhật ngay khi popup thay đổi limit
@@ -650,11 +631,31 @@
       chrome.storage.sync.get([LIMITS_KEY], syncRes => {
         applyLimit(syncRes[LIMITS_KEY] || {});
         timeEl.textContent = fmtDisplay();
-        timeEl.style.visibility = ''; // hiện giờ sau khi đã có data
+        timeEl.style.visibility = '';
         updateColor();
 
-        // Interval chỉ khởi động SAU khi graceUntil và timeLimit đã sẵn sàng
-        setInterval(() => {
+        // visibilitychange chỉ đăng ký SAU khi graceUntil/timeLimit sẵn sàng
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            saveTimer();
+          } else {
+            // Sync với tab khác: merge storage làm base, giữ STORE_HOST lớn nhất
+            chrome.storage.local.get([SYNC_KEY], result => {
+              const fresh = result[SYNC_KEY] || {};
+              const stored = Math.round(fresh[STORE_HOST] || 0);
+              dayCache = { ...fresh, [STORE_HOST]: Math.max(stored, seconds) };
+              if (stored > seconds) {
+                seconds = stored;
+                timeEl.textContent = fmtDisplay();
+                updateColor();
+              }
+            });
+          }
+        });
+
+        // Interval khởi động SAU khi tất cả đã sẵn sàng — capture ID để clearInterval khi lock
+        let intervalId;
+        intervalId = setInterval(() => {
           const paused = document.hidden;
           dotEl.classList.toggle('paused', paused);
           if (paused) return;
@@ -666,6 +667,7 @@
               // Đang trong grace period — chưa lock
             } else {
               graceUntil = 0;
+              clearInterval(intervalId); // dừng interval trước khi lock
               saveTimer();
               lockForToday();
               return;

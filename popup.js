@@ -62,7 +62,7 @@ function renderTodaySites(data) {
   });
   const el = document.getElementById('todaySites');
   if (!sites.length) { el.innerHTML = `<div class="empty">${t('popup_no_data')}</div>`; return; }
-  const max = sites[0][1] || 1;
+  const max = Math.max(...sites.map(([, v]) => v), 1);
   el.innerHTML = sites.map(([domain, secs]) => `
     <div class="site-row">
       <div class="site-name" title="${displayName(domain)}">${displayName(domain)}</div>
