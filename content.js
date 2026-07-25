@@ -502,6 +502,13 @@
     }
     requestAnimationFrame(initPos);
 
+    // Re-clamp khi window resize hoặc detach sang cửa sổ mới
+    window.addEventListener('resize', () => {
+      const top  = parseFloat(widget.style.top)  || 0;
+      const left = parseFloat(widget.style.left) || 0;
+      clampAndSet(top, left);
+    });
+
     // ── Drag ──
     let dragging = false, hasMoved = false, origin = {};
     widget.addEventListener('mousedown', e => {
