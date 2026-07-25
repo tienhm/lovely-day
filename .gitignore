@@ -1,2 +1,4 @@
 *.md
-*.bat
+dev-*.bat
+dist/
+_build_tmp*/
