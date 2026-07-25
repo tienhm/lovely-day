@@ -163,7 +163,7 @@
               ${fmtSecs(siteTotalSecs)} ${t('stat_of_total')} ${fmtSecs(allTotalSecs)}
             </div>
           </div>
-        </div>`;
+        </div>`);
     });
   }
 
@@ -209,7 +209,7 @@
         padding:10px 28px;cursor:pointer;transition:all .2s">
         ${t('unlock_early')}
       </button>
-    `;
+    `);
 
     function append() {
       if (!document.body) return;
@@ -473,7 +473,7 @@
         <div id="ald-clock-time">00:00</div>
         ${isIncognito ? '' : `<button id="ald-lock-btn" title="${t('lock_btn_title', [DISPLAY_NAME])}">${SVG_LOCK}</button>`}
       </div>
-    `;
+    `);
     document.body.appendChild(widget);
 
     const timeEl = widget.querySelector('#ald-clock-time');
