@@ -36,7 +36,7 @@
   function parseHTML(html) {
     return new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body;
   }
-  function setElHTML(el, html) { el.replaceChildren(...parseHTML(html).childNodes); }
+  function setElHTML(el, html) { el.replaceChildren(...Array.from(parseHTML(html).childNodes)); }
 
   // ─── Helpers ─────────────────────────────────────────────────
   function todayStr() {
@@ -215,18 +215,20 @@
       if (!document.body) return;
       document.body.appendChild(el);
       const btn = el.querySelector('#ald-unlock-btn');
-      btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,.16)'; btn.style.color='#fff'; });
-      btn.addEventListener('mouseout',  () => { btn.style.background='rgba(255,255,255,.08)'; btn.style.color='rgba(255,255,255,.6)'; });
-      btn.addEventListener('click', () => {
-        chrome.storage.sync.get([LIMITS_KEY], r => {
-          const siteLimitSecs = ((r[LIMITS_KEY] || {})[STORE_HOST]) || 600;
-          const graceSecs = Math.min(600, siteLimitSecs);
-          chrome.storage.local.set(
-            { ['ald_grace_' + STORE_HOST]: { until: Date.now() + graceSecs * 1000 } },
-            () => chrome.storage.local.remove(LOCK_STORAGE_KEY, () => location.reload())
-          );
+      if (btn) {
+        btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,.16)'; btn.style.color='#fff'; });
+        btn.addEventListener('mouseout',  () => { btn.style.background='rgba(255,255,255,.08)'; btn.style.color='rgba(255,255,255,.6)'; });
+        btn.addEventListener('click', () => {
+          chrome.storage.sync.get([LIMITS_KEY], r => {
+            const siteLimitSecs = ((r[LIMITS_KEY] || {})[STORE_HOST]) || 600;
+            const graceSecs = Math.min(600, siteLimitSecs);
+            chrome.storage.local.set(
+              { ['ald_grace_' + STORE_HOST]: { until: Date.now() + graceSecs * 1000 } },
+              () => chrome.storage.local.remove(LOCK_STORAGE_KEY, () => location.reload())
+            );
+          });
         });
-      });
+      }
       renderLockStats(el.querySelector('#ald-lock-stats'));
     }
     document.body ? append() : document.addEventListener('DOMContentLoaded', append);

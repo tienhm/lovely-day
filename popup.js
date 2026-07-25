@@ -55,7 +55,7 @@ function escapeHtml(str) {
 // Parse HTML an toàn qua DOMParser (nội dung đã được escape)
 function setHTML(el, html) {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
-  el.replaceChildren(...doc.body.childNodes);
+  el.replaceChildren(...Array.from(doc.body.childNodes));
 }
 
 function displayName(domain) {
