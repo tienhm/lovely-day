@@ -47,6 +47,8 @@
   const lockCheckStyle = document.createElement('style');
   lockCheckStyle.textContent = 'html{visibility:hidden!important}#ald-lock-screen{visibility:visible!important}';
   document.documentElement.appendChild(lockCheckStyle);
+  // Fallback: nếu storage callback không fire (extension reload, quota error...) thì hiện trang sau 3s
+  const lockCheckFallback = setTimeout(() => lockCheckStyle.remove(), 3000);
 
   // Định dạng giây → "Xh Yp" hoặc "Zp"
   function fmtSecs(s) {
@@ -58,7 +60,7 @@
 
   // Render thống kê vào container trong lock screen (async)
   function renderLockStats(container) {
-    const hostname = location.hostname.replace(/^www\./, '');
+    const hostname = STORE_HOST; // '__private__' in incognito, real host otherwise
     const now = new Date();
 
     const days = Array.from({ length: 60 }, (_, i) => {
@@ -160,6 +162,8 @@
   }
 
   function showLockScreen() {
+    clearTimeout(lockCheckFallback);
+    lockCheckStyle.remove(); // bỏ html{visibility:hidden}, lock screen tự xử lý ẩn nội dung
     if (document.getElementById('ald-lock-screen')) return;
     const hideStyle = document.createElement('style');
     hideStyle.textContent =
@@ -595,14 +599,17 @@
       }
     }
 
+    // Grace key dùng STORE_HOST: trong incognito tất cả sites dùng chung '__private__'
+    // nên unlock 1 tab = grace cho tất cả incognito tabs — đây là behavior mong muốn
     const GRACE_KEY = 'ald_grace_' + STORE_HOST;
     let graceUntil = 0;
 
 
-    // dayCache = {} (không null) để pagehide không mất seconds dù callback chưa xong
-    let dayCache = {};
+    let dayCache    = {};
+    let localLoaded = false; // guard: không save trước khi local.get callback chạy
 
     function saveTimer() {
+      if (!localLoaded) return; // tránh ghi đè data thật bằng {} khi pagehide quá sớm
       dayCache[STORE_HOST] = seconds;
       chrome.storage.local.set({ [SYNC_KEY]: dayCache });
     }
@@ -620,8 +627,9 @@
 
     // Bước 1: load timer + grace từ local (nhanh, cùng device)
     chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
-      dayCache = localRes[SYNC_KEY] || {};
-      seconds  = Math.round(dayCache[STORE_HOST] || 0);
+      dayCache    = localRes[SYNC_KEY] || {};
+      seconds     = Math.round(dayCache[STORE_HOST] || 0);
+      localLoaded = true;
       const grace = localRes[GRACE_KEY];
       if (grace && grace.until > Date.now()) {
         graceUntil = grace.until;
@@ -687,10 +695,10 @@
   chrome.storage.local.get([LOCK_STORAGE_KEY], result => {
     const lock = result[LOCK_STORAGE_KEY];
     if (lock && lock.date === todayStr()) {
-      showLockScreen(); // giữ nguyên visibility:hidden, hiện lock screen
+      showLockScreen();
       return;
     }
-    // Không bị lock → bỏ ẩn trang và khởi động
+    clearTimeout(lockCheckFallback);
     lockCheckStyle.remove();
     if (startFB) startFB();
     if (document.readyState === 'loading') {

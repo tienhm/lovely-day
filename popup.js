@@ -48,8 +48,12 @@ function loadAndRender() {
   });
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function displayName(domain) {
-  return domain === '__private__' ? t('label_private') : domain;
+  return escapeHtml(domain === '__private__' ? t('label_private') : domain);
 }
 
 // Today by site
@@ -264,7 +268,7 @@ function renderAllLimits(limits) {
       <span class="other-name" title="${label}"
         style="${isCurrent ? 'color:#fff;font-weight:700' : ''}">${label}${isCurrent ? ' ●' : ''}</span>
       <span class="other-limit">${fmtLimit(secs)}</span>
-      <button class="other-del" data-domain="${domain}">×</button>
+      <button class="other-del" data-domain="${escapeHtml(domain)}">×</button>
     </div>`;
   }).join('');
 
