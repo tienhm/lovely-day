@@ -4,7 +4,7 @@
   "ext_action_title":{ "message": "Effective Time Manager" },
 
   "lock_btn_title":  { "message": "Bloquer $1 aujourd'hui" },
-  "label_private":   { "message": "Autres" },
+  "label_private":   { "message": "autres" },
   "site_locked_title":{ "message": "$1 est bloqué" },
   "site_locked_msg": { "message": "Enjoy your lovely break!" },
   "unlock_tagline":  { "message": "I don't wanna break free" },
