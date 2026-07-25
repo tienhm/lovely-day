@@ -6,9 +6,10 @@
   "lock_btn_title":  { "message": "Bloquer $1 aujourd'hui" },
   "lock_confirm":    { "message": "Bloquer $1 pour aujourd'hui ?\nVous ne pourrez plus y accéder avant demain." },
   "site_locked_title":{ "message": "$1 est bloqué" },
-  "site_locked_msg": { "message": "Vous vous êtes bloqué pour aujourd'hui.\nRevenez demain !" },
+  "site_locked_msg": { "message": "Enjoy your lovely break!" },
+  "unlock_tagline":  { "message": "I don't wanna break free" },
   "loading_stats":   { "message": "Chargement des statistiques…" },
-  "unlock_early":    { "message": "Débloquer maintenant" },
+  "unlock_early":    { "message": "Déverrouiller" },
 
   "stat_today":        { "message": "Aujourd'hui" },
   "stat_this_week":    { "message": "Cette semaine" },

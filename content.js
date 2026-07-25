@@ -163,7 +163,7 @@
       'background:linear-gradient(135deg,#0f0f1a 0%,#1a1a3e 55%,#0a1628 100%)',
       'display:flex', 'flex-direction:column', 'align-items:center',
       'padding:40px 24px 40px',
-      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'color:#fff',
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'color:#fff', 'color-scheme:dark',
     ].join(';');
     el.innerHTML = `
       <div style="filter:drop-shadow(0 0 28px rgba(120,140,255,.55));margin-bottom:16px">
@@ -171,10 +171,8 @@
           <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>
       </div>
-      <h1 style="font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.5px">${t('site_locked_title', [DOMAIN])}</h1>
-      <p style="font-size:13px;color:rgba(255,255,255,.45);margin:0 0 24px;text-align:center;line-height:1.7">
-        ${t('site_locked_msg').replace('\n', '<br>')}
-      </p>
+      <h1 style="font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.5px;color:#fff">${t('site_locked_title', [DOMAIN])}</h1>
+      <p style="font-size:15px;color:rgba(255,255,255,.85);margin:0 0 24px;text-align:center;font-style:italic">${t('site_locked_msg')}</p>
 
       <div id="ald-lock-stats" style="width:100%;max-width:460px;margin-bottom:24px">
         <div style="text-align:center;padding:20px;color:rgba(255,255,255,.25);font-size:13px">
@@ -182,6 +180,9 @@
         </div>
       </div>
 
+      <p style="font-size:13px;color:rgba(255,255,255,.45);margin:0 0 10px;text-align:center">
+        ${t('unlock_tagline')}
+      </p>
       <button id="ald-unlock-btn" style="background:rgba(255,255,255,0.08);
         border:1px solid rgba(255,255,255,0.2);border-radius:10px;
         color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;
@@ -523,7 +524,6 @@
     if (lockBtn) {
       lockBtn.addEventListener('click', e => {
         e.stopPropagation();
-        if (!confirm(t('lock_confirm', [DOMAIN]))) return;
         lockForToday();
       });
     }

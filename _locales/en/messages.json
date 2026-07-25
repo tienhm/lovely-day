@@ -6,9 +6,10 @@
   "lock_btn_title":  { "message": "Lock $1 today" },
   "lock_confirm":    { "message": "Lock $1 for today?\nYou won't be able to visit until tomorrow." },
   "site_locked_title":{ "message": "$1 is locked" },
-  "site_locked_msg": { "message": "You locked yourself out today.\nCome back tomorrow!" },
+  "site_locked_msg": { "message": "Enjoy your lovely break!" },
+  "unlock_tagline":  { "message": "I don't wanna break free" },
   "loading_stats":   { "message": "Loading stats…" },
-  "unlock_early":    { "message": "Unlock early" },
+  "unlock_early":    { "message": "Unlock" },
 
   "stat_today":        { "message": "Today" },
   "stat_this_week":    { "message": "This week" },

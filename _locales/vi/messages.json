@@ -6,9 +6,10 @@
   "lock_btn_title":  { "message": "Khóa $1 hôm nay" },
   "lock_confirm":    { "message": "Khóa $1 cho hôm nay?\nBạn sẽ không vào được cho đến ngày mai." },
   "site_locked_title":{ "message": "$1 đã bị khóa" },
-  "site_locked_msg": { "message": "Bạn đã tự khóa hôm nay.\nQuay lại vào ngày mai nhé!" },
+  "site_locked_msg": { "message": "Enjoy your lovely break!" },
+  "unlock_tagline":  { "message": "I don't wanna break free" },
   "loading_stats":   { "message": "Đang tải thống kê…" },
-  "unlock_early":    { "message": "Mở khóa sớm" },
+  "unlock_early":    { "message": "Mở khóa" },
 
   "stat_today":        { "message": "Hôm nay" },
   "stat_this_week":    { "message": "Tuần này" },
