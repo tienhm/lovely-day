@@ -48,15 +48,24 @@ function loadAndRender() {
   });
 }
 
+function displayName(domain) {
+  return domain === '__private__' ? t('label_private') : domain;
+}
+
 // Today by site
 function renderTodaySites(data) {
-  const sites = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  // __private__ luôn xuống cuối
+  const sites = Object.entries(data).sort((a, b) => {
+    if (a[0] === '__private__') return 1;
+    if (b[0] === '__private__') return -1;
+    return b[1] - a[1];
+  });
   const el = document.getElementById('todaySites');
   if (!sites.length) { el.innerHTML = `<div class="empty">${t('popup_no_data')}</div>`; return; }
   const max = sites[0][1] || 1;
   el.innerHTML = sites.map(([domain, secs]) => `
     <div class="site-row">
-      <div class="site-name" title="${domain}">${domain}</div>
+      <div class="site-name" title="${displayName(domain)}">${displayName(domain)}</div>
       <div class="site-bar-wrap"><div class="site-bar" style="width:${Math.round(secs/max*100)}%"></div></div>
       <div class="site-time">${fmtSecs(secs)}</div>
     </div>`).join('');
@@ -249,10 +258,11 @@ function renderAllLimits(limits) {
   }
   el.innerHTML = entries.map(([domain, secs]) => {
     const isCurrent = domain === currentDomain;
+    const label = displayName(domain);
     return `
     <div class="other-row">
-      <span class="other-name" title="${domain}"
-        style="${isCurrent ? 'color:#fff;font-weight:700' : ''}">${domain}${isCurrent ? ' ●' : ''}</span>
+      <span class="other-name" title="${label}"
+        style="${isCurrent ? 'color:#fff;font-weight:700' : ''}">${label}${isCurrent ? ' ●' : ''}</span>
       <span class="other-limit">${fmtLimit(secs)}</span>
       <button class="other-del" data-domain="${domain}">×</button>
     </div>`;
