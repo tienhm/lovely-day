@@ -4,7 +4,6 @@
   "ext_action_title":{ "message": "Effective Time Manager" },
 
   "lock_btn_title":  { "message": "Khóa $1 hôm nay" },
-  "lock_confirm":    { "message": "Khóa $1 cho hôm nay?\nBạn sẽ không vào được cho đến ngày mai." },
   "site_locked_title":{ "message": "$1 đã bị khóa" },
   "site_locked_msg": { "message": "Enjoy your lovely break!" },
   "unlock_tagline":  { "message": "I don't wanna break free" },

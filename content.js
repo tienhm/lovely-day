@@ -354,9 +354,9 @@
           el[SCANNED_ATTR] = true;
           const article = getArticle(el);
           if (article) { block(article); return; }
-          let t = el;
-          for (let i = 0; i < 3 && t.parentElement && t.parentElement !== document.body; i++) t = t.parentElement;
-          block(t);
+          let cur = el;
+          for (let i = 0; i < 3 && cur.parentElement && cur.parentElement !== document.body; i++) cur = cur.parentElement;
+          block(cur);
         });
       }
     }

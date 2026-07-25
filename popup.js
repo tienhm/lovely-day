@@ -18,14 +18,6 @@ function fmtSecs(s) {
   return h === 0 ? `${m}${M}` : (m > 0 ? `${h}${H} ${m}${M}` : `${h}${H}`);
 }
 
-function formatDate(dateStr) {
-  const today = localDateStr();
-  const d = new Date(); d.setDate(d.getDate() - 1);
-  const yesterday = localDateStr(d);
-  if (dateStr === today)     return t('popup_today');
-  if (dateStr === yesterday) return t('popup_yesterday');
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 // ── Storage keys (last N days) ────────────────────────────────
 function buildKeys(n) {
@@ -197,7 +189,7 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     });
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: `etm-${localDateStr()}.csv`,
+      download: `ald-${localDateStr()}.csv`,
     });
     a.click();
   });
