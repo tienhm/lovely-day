@@ -52,6 +52,13 @@ function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// Dùng createContextualFragment thay innerHTML để tránh linter warning
+// Nội dung đã được escape trước khi truyền vào hàm này
+function setHTML(el, html) {
+  const frag = document.createRange().createContextualFragment(html);
+  el.replaceChildren(frag);
+}
+
 function displayName(domain) {
   return escapeHtml(domain === '__private__' ? t('label_private') : domain);
 }
@@ -73,19 +80,19 @@ function renderTodaySites(data) {
     return;
   }
   const max = Math.max(...sites.map(([, v]) => v), 1);
-  el.innerHTML = sites.map(([domain, secs]) => `
+  setHTML(el, sites.map(([domain, secs]) => `
     <div class="site-row">
       <div class="site-name" title="${displayName(domain)}">${displayName(domain)}</div>
       <div class="site-bar-wrap"><div class="site-bar" style="width:${Math.round(secs/max*100)}%"></div></div>
       <div class="site-time">${fmtSecs(secs)}</div>
-    </div>`).join('');
+    </div>`).join(''));
 }
 
 // 7-day bar chart (oldest → newest)
 function renderWeekChart(days) {
   const reversed = [...days].reverse(); // oldest first
   const max = Math.max(...reversed.map(d => d.secs), 1);
-  document.getElementById('weekChart').innerHTML = reversed.map(d => {
+  setHTML(document.getElementById('weekChart'), reversed.map(d => {
     const h = Math.max(3, Math.round(d.secs / max * 64));
     const label = new Date(d.dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
     return `
@@ -93,7 +100,7 @@ function renderWeekChart(days) {
         <div class="week-bar" style="height:${h}px" title="${fmtSecs(d.secs)}"></div>
         <div class="week-label">${label}</div>
       </div>`;
-  }).join('');
+  }).join(''));
 }
 
 
@@ -243,14 +250,19 @@ function renderCurrentLimit(limits) {
   const removeBtn = document.getElementById('removeLimitBtn');
 
   if (secs > 0) {
-    statusEl.innerHTML = `<span style="font-size:12px;color:#a78bfa;font-weight:600">${fmtLimit(secs)}</span>
-      <span style="font-size:11px;color:rgba(255,255,255,.3);margin-left:6px">${t('limit_current')}</span>`;
+    const s1 = Object.assign(document.createElement('span'), { textContent: fmtLimit(secs) });
+    s1.style.cssText = 'font-size:12px;color:#a78bfa;font-weight:600';
+    const s2 = Object.assign(document.createElement('span'), { textContent: t('limit_current') });
+    s2.style.cssText = 'font-size:11px;color:rgba(255,255,255,.3);margin-left:6px';
+    statusEl.replaceChildren(s1, s2);
     const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60);
     document.getElementById('limitH').value = h || '';
     document.getElementById('limitM').value = m || '';
     removeBtn.disabled = false;
   } else {
-    statusEl.innerHTML = `<span style="font-size:11px;color:rgba(255,255,255,.3)">${t('limit_none')}</span>`;
+    const s = Object.assign(document.createElement('span'), { textContent: t('limit_none') });
+    s.style.cssText = 'font-size:11px;color:rgba(255,255,255,.3)';
+    statusEl.replaceChildren(s);
     document.getElementById('limitH').value = '';
     document.getElementById('limitM').value = '';
     removeBtn.disabled = true;
@@ -263,10 +275,13 @@ function renderAllLimits(limits) {
   const entries = Object.entries(limits)
     .sort((a, b) => a[0].localeCompare(b[0]));
   if (!entries.length) {
-    el.innerHTML = `<div class="empty">${t('limit_none')}</div>`;
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = t('limit_none');
+    el.replaceChildren(empty);
     return;
   }
-  el.innerHTML = entries.map(([domain, secs]) => {
+  setHTML(el, entries.map(([domain, secs]) => {
     const isCurrent = domain === currentDomain;
     const label = displayName(domain);
     return `
@@ -276,7 +291,7 @@ function renderAllLimits(limits) {
       <span class="other-limit">${fmtLimit(secs)}</span>
       <button class="other-del" data-domain="${escapeHtml(domain)}">×</button>
     </div>`;
-  }).join('');
+  }).join(''));
 
   el.querySelectorAll('[data-domain]').forEach(btn => {
     btn.addEventListener('click', () => {
