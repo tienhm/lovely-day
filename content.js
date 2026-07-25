@@ -2,7 +2,7 @@
   'use strict';
 
   const isFB     = /(?:^|\.)facebook\.com$/.test(location.hostname);
-  const HOSTNAME = location.hostname.replace(/^www\./, ''); // key lưu storage
+  const HOSTNAME = location.hostname.replace(/^www\./, ''); // key lưu storage (real hostname)
 
   // Lấy tên chính của domain, bỏ subdomain và TLD
   // Ví dụ: maps.google.com.vn → google | www.bbc.co.uk → bbc | youtube.com → youtube
@@ -10,15 +10,22 @@
     const parts = hostname.split('.');
     const last       = parts[parts.length - 1] || '';
     const secondLast = parts[parts.length - 2] || '';
-    // TLD hai tầng: *.com.vn, *.co.uk, *.gov.uk ... (last là country code 2 ký tự)
     const twoLevel = ['com','co','gov','org','net','edu','ac'];
     const idx = (last.length === 2 && twoLevel.includes(secondLast))
-      ? parts.length - 3   // bỏ 2 phần TLD, lấy phần trước
-      : parts.length - 2;  // bỏ 1 phần TLD, lấy phần trước
+      ? parts.length - 3
+      : parts.length - 2;
     return parts[Math.max(0, idx)] || hostname;
   }
 
   const DOMAIN = getSiteName(location.hostname);
+
+  // Incognito/Private: dùng bộ đếm chung, không phân biệt URL
+  const isIncognito  = !!(chrome.extension && chrome.extension.inIncognitoContext);
+  // STORE_HOST: key dùng trong storage — '__private__' cho incognito, real host bình thường
+  const STORE_HOST   = isIncognito ? '__private__' : HOSTNAME;
+  // DISPLAY_NAME: tên hiển thị trên clock và lock screen
+  // (i18n key 'label_private' — nếu chưa có key thì fallback về 'Private')
+  const DISPLAY_NAME = isIncognito ? (chrome.i18n.getMessage('label_private') || 'Private') : DOMAIN;
 
   // ─── i18n helper ─────────────────────────────────────────────
   const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
@@ -31,7 +38,7 @@
 
   // ─── Lock ────────────────────────────────────────────────────
   // Dùng chrome.storage.local thay localStorage để Facebook JS không xóa được
-  const LOCK_STORAGE_KEY = 'ald_lock_' + HOSTNAME;
+  const LOCK_STORAGE_KEY = 'ald_lock_' + STORE_HOST;
   const LIMITS_KEY       = 'ald_limits';
 
   // Ẩn trang ngay lập tức trong lúc check lock (tránh flash nội dung)
@@ -172,7 +179,7 @@
           <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
         </svg>
       </div>
-      <h1 style="font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.5px;color:#fff">${t('site_locked_title', [DOMAIN])}</h1>
+      <h1 style="font-size:26px;font-weight:700;margin:0 0 6px;letter-spacing:-.5px;color:#fff">${t('site_locked_title', [DISPLAY_NAME])}</h1>
       <p style="font-size:15px;color:rgba(255,255,255,.85);margin:0 0 24px;text-align:center;font-style:italic">${t('site_locked_msg')}</p>
 
       <div id="ald-lock-stats" style="width:100%;max-width:460px;margin-bottom:24px">
@@ -200,10 +207,10 @@
       btn.addEventListener('mouseout',  () => { btn.style.background='rgba(255,255,255,.08)'; btn.style.color='rgba(255,255,255,.6)'; });
       btn.addEventListener('click', () => {
         chrome.storage.sync.get([LIMITS_KEY], r => {
-          const siteLimitSecs = ((r[LIMITS_KEY] || {})[HOSTNAME]) || 600;
-          const graceSecs = Math.min(600, siteLimitSecs); // min(10p, limit đã đặt)
+          const siteLimitSecs = ((r[LIMITS_KEY] || {})[STORE_HOST]) || 600;
+          const graceSecs = Math.min(600, siteLimitSecs);
           chrome.storage.local.set(
-            { ['ald_grace_' + HOSTNAME]: { until: Date.now() + graceSecs * 1000 } },
+            { ['ald_grace_' + STORE_HOST]: { until: Date.now() + graceSecs * 1000 } },
             () => chrome.storage.local.remove(LOCK_STORAGE_KEY, () => location.reload())
           );
         });
@@ -449,10 +456,10 @@
     const widget = document.createElement('div');
     widget.id = 'ald-clock';
     widget.innerHTML = `
-      <div id="ald-clock-label"><span id="ald-clock-dot"></span>${DOMAIN}</div>
+      <div id="ald-clock-label"><span id="ald-clock-dot"></span>${DISPLAY_NAME}</div>
       <div id="ald-clock-row">
         <div id="ald-clock-time">00:00</div>
-        <button id="ald-lock-btn" title="${t('lock_btn_title', [DOMAIN])}">${SVG_LOCK}</button>
+        <button id="ald-lock-btn" title="${t('lock_btn_title', [DISPLAY_NAME])}">${SVG_LOCK}</button>
       </div>
     `;
     document.body.appendChild(widget);
@@ -562,7 +569,7 @@
     }
 
     function applyLimit(limits) {
-      const raw = limits && limits[HOSTNAME];
+      const raw = limits && limits[STORE_HOST];
       timeLimit = raw ? Number(raw) : null;
       widget.classList.toggle('countdown', timeLimit !== null);
     }
@@ -579,7 +586,7 @@
       }
     }
 
-    const GRACE_KEY = 'ald_grace_' + HOSTNAME;
+    const GRACE_KEY = 'ald_grace_' + STORE_HOST;
     let graceUntil = 0;
 
     // Ẩn giờ cho đến khi data load xong (tránh flash "00:00")
@@ -588,7 +595,7 @@
     function saveTimer() {
       chrome.storage.local.get([SYNC_KEY], result => {
         const day = result[SYNC_KEY] || {};
-        day[HOSTNAME] = seconds;
+        day[STORE_HOST] = seconds;
         chrome.storage.local.set({ [SYNC_KEY]: day });
       });
     }
@@ -606,7 +613,7 @@
 
     // Load timer + grace từ local, limits từ sync — khởi động interval sau khi có đủ data
     chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
-      seconds = Math.round((localRes[SYNC_KEY] || {})[HOSTNAME] || 0);
+      seconds = Math.round((localRes[SYNC_KEY] || {})[STORE_HOST] || 0);
       const grace = localRes[GRACE_KEY];
       if (grace && grace.until > Date.now()) {
         graceUntil = grace.until;
