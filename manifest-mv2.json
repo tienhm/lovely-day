@@ -32,9 +32,9 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "a-lovely-day@extension",
-      "strict_min_version": "140.0",
+      "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": ["technical_and_interaction_data"],
+        "required": ["none"],
         "optional": []
       }
     }

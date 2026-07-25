@@ -52,11 +52,10 @@ function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// Dùng createContextualFragment thay innerHTML để tránh linter warning
-// Nội dung đã được escape trước khi truyền vào hàm này
+// Parse HTML an toàn qua DOMParser (nội dung đã được escape)
 function setHTML(el, html) {
-  const frag = document.createRange().createContextualFragment(html);
-  el.replaceChildren(frag);
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  el.replaceChildren(...doc.body.childNodes);
 }
 
 function displayName(domain) {

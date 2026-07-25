@@ -32,6 +32,12 @@
   // ─── i18n helper ─────────────────────────────────────────────
   const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
 
+  // Parse HTML an toàn — nội dung template đã được escape trước khi truyền vào
+  function parseHTML(html) {
+    return new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body;
+  }
+  function setElHTML(el, html) { el.replaceChildren(...parseHTML(html).childNodes); }
+
   // ─── Helpers ─────────────────────────────────────────────────
   function todayStr() {
     const d = new Date();
@@ -125,7 +131,7 @@
           </div>`;
       }).join('');
 
-      container.innerHTML = `
+      setElHTML(container, `
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
             ${card(t('stat_today'),       fmtSecs(todaySecs))}
@@ -179,7 +185,7 @@
       'padding:40px 24px 40px',
       'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'color:#fff', 'color-scheme:dark',
     ].join(';');
-    el.innerHTML = `
+    setElHTML(el, `
       <div style="filter:drop-shadow(0 0 28px rgba(120,140,255,.55));margin-bottom:16px">
         <svg width="60" height="60" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
           <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
@@ -461,7 +467,7 @@
 
     const widget = document.createElement('div');
     widget.id = 'ald-clock';
-    widget.innerHTML = `
+    setElHTML(widget, `
       <div id="ald-clock-label"><span id="ald-clock-dot"></span>${DISPLAY_NAME}</div>
       <div id="ald-clock-row">
         <div id="ald-clock-time">00:00</div>
