@@ -618,62 +618,66 @@
       }
     });
 
-    // Load timer + grace từ local, limits từ sync — khởi động interval sau khi có đủ data
+    // Bước 1: load timer + grace từ local (nhanh, cùng device)
     chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
       dayCache = localRes[SYNC_KEY] || {};
-      seconds = Math.round(dayCache[STORE_HOST] || 0);
+      seconds  = Math.round(dayCache[STORE_HOST] || 0);
       const grace = localRes[GRACE_KEY];
       if (grace && grace.until > Date.now()) {
         graceUntil = grace.until;
       } else if (grace) {
         chrome.storage.local.remove(GRACE_KEY);
       }
-      chrome.storage.sync.get([LIMITS_KEY], syncRes => {
-        applyLimit(syncRes[LIMITS_KEY] || {});
+
+      timeEl.textContent = fmtDisplay();
+      updateColor();
+
+      // visibilitychange đăng ký sau khi graceUntil đã sẵn sàng
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          saveTimer();
+        } else {
+          chrome.storage.local.get([SYNC_KEY], result => {
+            const fresh  = result[SYNC_KEY] || {};
+            const stored = Math.round(fresh[STORE_HOST] || 0);
+            dayCache = { ...fresh, [STORE_HOST]: Math.max(stored, seconds) };
+            if (stored > seconds) {
+              seconds = stored;
+              timeEl.textContent = fmtDisplay();
+              updateColor();
+            }
+          });
+        }
+      });
+
+      // Interval khởi động ngay sau local.get — không phụ thuộc sync.get
+      let intervalId;
+      intervalId = setInterval(() => {
+        const paused = document.hidden;
+        dotEl.classList.toggle('paused', paused);
+        if (paused) return;
+        seconds++;
         timeEl.textContent = fmtDisplay();
         updateColor();
-
-        // visibilitychange chỉ đăng ký SAU khi graceUntil/timeLimit sẵn sàng
-        document.addEventListener('visibilitychange', () => {
-          if (document.hidden) {
-            saveTimer();
+        if (timeLimit !== null && seconds >= timeLimit) {
+          if (graceUntil && Date.now() < graceUntil) {
+            // Đang trong grace period — chưa lock
           } else {
-            // Sync với tab khác: merge storage làm base, giữ STORE_HOST lớn nhất
-            chrome.storage.local.get([SYNC_KEY], result => {
-              const fresh = result[SYNC_KEY] || {};
-              const stored = Math.round(fresh[STORE_HOST] || 0);
-              dayCache = { ...fresh, [STORE_HOST]: Math.max(stored, seconds) };
-              if (stored > seconds) {
-                seconds = stored;
-                timeEl.textContent = fmtDisplay();
-                updateColor();
-              }
-            });
+            graceUntil = 0;
+            clearInterval(intervalId);
+            saveTimer();
+            lockForToday();
+            return;
           }
-        });
+        }
+        if (seconds % 30 === 0) saveTimer();
+      }, 1000);
 
-        // Interval khởi động SAU khi tất cả đã sẵn sàng — capture ID để clearInterval khi lock
-        let intervalId;
-        intervalId = setInterval(() => {
-          const paused = document.hidden;
-          dotEl.classList.toggle('paused', paused);
-          if (paused) return;
-          seconds++;
-          timeEl.textContent = fmtDisplay();
-          updateColor();
-          if (timeLimit !== null && seconds >= timeLimit) {
-            if (graceUntil && Date.now() < graceUntil) {
-              // Đang trong grace period — chưa lock
-            } else {
-              graceUntil = 0;
-              clearInterval(intervalId); // dừng interval trước khi lock
-              saveTimer();
-              lockForToday();
-              return;
-            }
-          }
-          if (seconds % 30 === 0) saveTimer();
-        }, 1000);
+      // Bước 2: load limits từ sync (có thể chậm hơn) — áp dụng khi sẵn sàng
+      chrome.storage.sync.get([LIMITS_KEY], syncRes => {
+        applyLimit((syncRes || {})[LIMITS_KEY] || {});
+        timeEl.textContent = fmtDisplay();
+        updateColor();
       });
     });
   }
