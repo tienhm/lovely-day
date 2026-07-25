@@ -592,15 +592,17 @@
     // Ẩn giờ cho đến khi data load xong (tránh flash "00:00")
     timeEl.style.visibility = 'hidden';
 
+    // Giữ day object trong memory — save chỉ cần 1 lần set, không cần get trước
+    let dayCache = null;
+
     function saveTimer() {
-      chrome.storage.local.get([SYNC_KEY], result => {
-        const day = result[SYNC_KEY] || {};
-        day[STORE_HOST] = seconds;
-        chrome.storage.local.set({ [SYNC_KEY]: day });
-      });
+      if (dayCache === null) return; // chưa load xong lần đầu
+      dayCache[STORE_HOST] = seconds;
+      chrome.storage.local.set({ [SYNC_KEY]: dayCache });
     }
 
     document.addEventListener('visibilitychange', () => { if (document.hidden) saveTimer(); });
+    window.addEventListener('pagehide', saveTimer); // save trước khi navigate/close
 
     // Cập nhật ngay khi popup thay đổi limit
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -613,7 +615,8 @@
 
     // Load timer + grace từ local, limits từ sync — khởi động interval sau khi có đủ data
     chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
-      seconds = Math.round((localRes[SYNC_KEY] || {})[STORE_HOST] || 0);
+      dayCache = localRes[SYNC_KEY] || {};
+      seconds = Math.round(dayCache[STORE_HOST] || 0);
       const grace = localRes[GRACE_KEY];
       if (grace && grace.until > Date.now()) {
         graceUntil = grace.until;
