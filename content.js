@@ -198,7 +198,14 @@
       btn.addEventListener('mouseover', () => { btn.style.background='rgba(255,255,255,.16)'; btn.style.color='#fff'; });
       btn.addEventListener('mouseout',  () => { btn.style.background='rgba(255,255,255,.08)'; btn.style.color='rgba(255,255,255,.6)'; });
       btn.addEventListener('click', () => {
-        chrome.storage.local.remove(LOCK_STORAGE_KEY, () => location.reload());
+        chrome.storage.sync.get([LIMITS_KEY], r => {
+          const siteLimitSecs = ((r[LIMITS_KEY] || {})[HOSTNAME]) || 600;
+          const graceSecs = Math.min(600, siteLimitSecs); // min(10p, limit đã đặt)
+          chrome.storage.local.set(
+            { ['ald_grace_' + HOSTNAME]: { until: Date.now() + graceSecs * 1000 } },
+            () => chrome.storage.local.remove(LOCK_STORAGE_KEY, () => location.reload())
+          );
+        });
       });
       renderLockStats(el.querySelector('#ald-lock-stats'));
     }
@@ -565,9 +572,18 @@
       }
     }
 
-    // Timer từ local, limits từ sync (chỉ limits mới cần cross-device)
-    chrome.storage.local.get([SYNC_KEY], localRes => {
+    const GRACE_KEY = 'ald_grace_' + HOSTNAME;
+    let graceUntil = 0;
+
+    // Timer từ local, limits từ sync, grace period từ local
+    chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
       seconds = Math.round((localRes[SYNC_KEY] || {})[HOSTNAME] || 0);
+      const grace = localRes[GRACE_KEY];
+      if (grace && grace.until > Date.now()) {
+        graceUntil = grace.until;
+      } else if (grace) {
+        chrome.storage.local.remove(GRACE_KEY); // dọn grace hết hạn
+      }
       chrome.storage.sync.get([LIMITS_KEY], syncRes => {
         applyLimit(syncRes[LIMITS_KEY] || {});
         timeEl.textContent = fmtDisplay();
@@ -602,7 +618,16 @@
       timeEl.textContent = fmtDisplay();
       updateColor();
       // Hết giờ → lock ngay
-      if (timeLimit !== null && seconds >= timeLimit) { saveTimer(); lockForToday(); return; }
+      if (timeLimit !== null && seconds >= timeLimit) {
+        if (graceUntil && Date.now() < graceUntil) {
+          // Đang trong grace period — chưa lock
+        } else {
+          graceUntil = 0;
+          saveTimer();
+          lockForToday();
+          return;
+        }
+      }
       if (seconds % 30 === 0) saveTimer();
     }, 1000);
   }
