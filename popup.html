@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>A Lovely Day</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a3e 55%, #0a1628 100%);
+      color: #fff;
+    }
+
+    .container { padding: 18px; }
+
+    .header { text-align: center; margin-bottom: 18px; }
+    .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 3px; }
+    .header p  { font-size: 11px; color: rgba(255,255,255,.4); }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .tab-btn {
+      flex: 1; padding: 8px 6px;
+      border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+      background: rgba(255,255,255,.05); color: rgba(255,255,255,.5);
+      cursor: pointer; font-size: 12px; font-weight: 600; transition: all .2s;
+    }
+    .tab-btn.active { background: rgba(102,126,234,.3); border-color: rgba(102,126,234,.5); color: #fff; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.08); color: rgba(255,255,255,.8); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Stat cards */
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .stat-card { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 12px 14px; }
+    .stat-label { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 6px; }
+    .stat-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.5px; background: linear-gradient(135deg, #a78bfa, #667eea); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* Generic section */
+    .section { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 13px; margin-bottom: 10px; }
+    .section-title { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 10px; }
+
+    /* Site bar rows */
+    .site-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .site-row:last-child { margin-bottom: 0; }
+    .site-name { font-size: 12px; font-weight: 600; color: #fff; width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+    .site-bar-wrap { flex: 1; height: 5px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+    .site-bar { height: 100%; background: linear-gradient(90deg, #667eea, #a78bfa); border-radius: 3px; }
+    .site-time { font-size: 11px; color: rgba(255,255,255,.7); font-weight: 600; width: 50px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+    /* Week chart */
+    .week-chart { display: flex; gap: 4px; align-items: flex-end; height: 64px; }
+    .week-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; }
+    .week-bar { width: 100%; background: linear-gradient(180deg, #667eea, #a78bfa); border-radius: 3px 3px 0 0; min-height: 3px; opacity: .85; }
+    .week-label { font-size: 9px; color: rgba(255,255,255,.3); }
+
+    /* Data buttons */
+    .btn-row { display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: rgba(102,126,234,.25); border: 1px solid rgba(102,126,234,.4); color: #a78bfa; }
+    .btn-primary:hover { background: rgba(102,126,234,.4); }
+    .btn-danger  { background: rgba(255,107,107,.15); border: 1px solid rgba(255,107,107,.3); color: #ff9090; }
+    .btn-danger:hover  { background: rgba(255,107,107,.3); }
+
+    /* Settings */
+    .current-site-box {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    }
+    .site-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .site-dot { width: 8px; height: 8px; border-radius: 50%; background: #4cff91; box-shadow: 0 0 5px #4cff91; flex-shrink: 0; }
+    .site-url { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .field-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 8px; }
+    .limit-row { display: flex; align-items: center; gap: 6px; }
+    .limit-input {
+      width: 72px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 7px; padding: 8px 5px; color: #fff; font-size: 13px;
+      text-align: center; outline: none;
+    }
+    .limit-input:focus { border-color: rgba(102,126,234,.6); }
+    .limit-sep { color: rgba(255,255,255,.3); font-size: 14px; }
+    .limit-btn {
+      flex: 1; border-radius: 7px; font-size: 12px; font-weight: 700;
+      padding: 8px; cursor: pointer; transition: all .2s; border: 1px solid;
+    }
+    .limit-btn-set {
+      background: rgba(102,126,234,.3); border-color: rgba(102,126,234,.5); color: #a78bfa;
+    }
+    .limit-btn-set:hover { background: rgba(102,126,234,.45); }
+    .limit-btn-unset {
+      background: rgba(255,80,80,.12); border-color: rgba(255,80,80,.25); color: #ff9090;
+    }
+    .limit-btn-unset:hover:not(:disabled) { background: rgba(255,80,80,.28); }
+    .limit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .divider { height: 1px; background: rgba(255,255,255,.08); margin: 14px 0; }
+
+    .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px; }
+    .toggle-row:last-child { margin-bottom: 0; }
+    .toggle-row input { width: 15px; height: 15px; cursor: pointer; accent-color: #667eea; flex-shrink: 0; }
+    .toggle-label strong { display: block; font-size: 12px; color: #fff; font-weight: 600; }
+    .toggle-label span   { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 1px; display: block; }
+
+    /* Others — inside same box */
+    .others-box {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+    }
+    .others-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; cursor: pointer; user-select: none;
+    }
+    .others-header:hover { background: rgba(255,255,255,.04); }
+    .others-header span { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.45); }
+    .others-arrow { font-size: 10px; color: rgba(255,255,255,.3); transition: transform .2s; }
+    .others-arrow.open { transform: rotate(90deg); }
+    .others-body { display: none; padding: 0 14px 12px; border-top: 1px solid rgba(255,255,255,.06); }
+    .others-body.open { display: block; }
+
+    /* Other site rows */
+    .other-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .other-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .other-name { flex: 1; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .other-limit { font-size: 11px; color: #a78bfa; font-weight: 600; flex-shrink: 0; }
+    .other-del {
+      background: rgba(255,80,80,.12); border: 1px solid rgba(255,80,80,.2);
+      border-radius: 5px; color: #ff9090; font-size: 11px;
+      padding: 2px 7px; cursor: pointer; flex-shrink: 0;
+    }
+
+    .empty { text-align: center; padding: 14px 0; color: rgba(255,255,255,.25); font-size: 12px; }
+
+    .scrollable { max-height: 280px; overflow-y: auto; }
+    .scrollable::-webkit-scrollbar { width: 3px; }
+    .scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>A Lovely Day</h1>
+    <p data-i18n="popup_subtitle">Track time on any site · Block Reels on Facebook</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview" data-i18n="tab_overview">Overview</button>
+    <button class="tab-btn"        data-tab="settings" data-i18n="tab_settings">Settings</button>
+  </div>
+
+  <!-- ── Overview ── -->
+  <div id="overview" class="tab-content active">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label" data-i18n="popup_today">Today</div>
+        <div class="stat-value" id="todayTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label" data-i18n="popup_week">This Week</div>
+        <div class="stat-value" id="weekTotal">—</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" data-i18n="popup_today_sites">Today by site</div>
+      <div id="todaySites"><div class="empty" data-i18n="popup_no_data">No data yet</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title" data-i18n="popup_last7">Last 7 days</div>
+      <div class="week-chart" id="weekChart"></div>
+    </div>
+
+    <!-- Data buttons at bottom of overview -->
+    <div class="btn-row">
+      <button class="btn btn-primary" id="importBtn" data-i18n="btn_import">Import</button>
+      <button class="btn btn-primary" id="exportBtn" data-i18n="btn_export">Export</button>
+      <button class="btn btn-danger"  id="clearBtn"  data-i18n="btn_clear">Clear All</button>
+    </div>
+    <input type="file" id="importFile" accept=".csv" style="display:none">
+  </div>
+
+  <!-- ── Settings ── -->
+  <div id="settings" class="tab-content">
+
+    <!-- Current site -->
+    <div class="current-site-box">
+      <div class="site-indicator">
+        <div class="site-dot"></div>
+        <div class="site-url" id="currentSiteName">—</div>
+      </div>
+
+      <div class="field-label" data-i18n="settings_limits">Time Limit</div>
+      <div id="currentLimitStatus" style="margin-bottom:8px;font-size:11px;color:rgba(255,255,255,.3)"></div>
+      <div class="limit-row">
+        <input id="limitH" class="limit-input" type="number" min="0" max="23" placeholder="h">
+        <span class="limit-sep">:</span>
+        <input id="limitM" class="limit-input" type="number" min="0" max="59" placeholder="m">
+        <button id="saveLimitBtn"   class="limit-btn limit-btn-set"   data-i18n="limit_add">Set</button>
+        <button id="removeLimitBtn" class="limit-btn limit-btn-unset" data-i18n="limit_remove" disabled>Unset</button>
+      </div>
+
+      <!-- FB-only -->
+      <div id="fbSection" style="display:none">
+        <div class="divider"></div>
+        <div class="field-label" data-i18n="settings_blocking">Facebook Blocking</div>
+        <label class="toggle-row">
+          <input type="checkbox" id="blockReels">
+          <div class="toggle-label">
+            <strong data-i18n="settings_block_reels">Block Reels</strong>
+            <span data-i18n="settings_block_reels_desc">Reels, Stories, short videos</span>
+          </div>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" id="blockAllVideos">
+          <div class="toggle-label">
+            <strong data-i18n="settings_block_videos">Block all videos</strong>
+            <span data-i18n="settings_block_videos_desc">Hide all posts with video in feed</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Others collapsible — single box -->
+    <div class="others-box">
+      <div class="others-header" id="othersToggle">
+        <span data-i18n="settings_summary">Summary</span>
+        <span class="others-arrow" id="othersArrow">▶</span>
+      </div>
+      <div class="others-body scrollable" id="othersList"></div>
+    </div>
+
+  </div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>
