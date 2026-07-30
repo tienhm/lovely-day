@@ -13,7 +13,7 @@ if exist %ZIP% del %ZIP%
 if exist %TMP% rmdir /s /q %TMP%
 mkdir %TMP%
 
-copy manifest-mv2.json %TMP%\manifest.json > nul
+copy manifest.json     %TMP%\manifest.json > nul
 copy content.js        %TMP%\              > nul
 copy popup.html        %TMP%\              > nul
 copy popup.js          %TMP%\              > nul

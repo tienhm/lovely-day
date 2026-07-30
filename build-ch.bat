@@ -11,8 +11,7 @@ if exist %OUT% del %OUT%
 if exist %TMP% rmdir /s /q %TMP%
 mkdir %TMP%
 
-:: Dung manifest-mv3.json cho Chrome/Brave
-copy manifest-mv3.json %TMP%\manifest.json > nul
+copy manifest.json     %TMP%\manifest.json > nul
 copy content.js        %TMP%\              > nul
 copy popup.html        %TMP%\              > nul
 copy popup.js          %TMP%\              > nul
