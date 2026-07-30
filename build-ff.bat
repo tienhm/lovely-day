@@ -21,6 +21,9 @@ copy background.js     %TMP%\              > nul
 xcopy icons    %TMP%\icons\    /e /i /q > nul
 xcopy _locales %TMP%\_locales\ /e /i /q > nul
 
+:: Strip service_worker khoi manifest (Firefox khong ho tro, dung scripts thay)
+powershell -NoProfile -Command "$f='%TMP%\manifest.json'; $m=Get-Content $f -Raw|ConvertFrom-Json; $m.background.PSObject.Properties.Remove('service_worker'); [IO.File]::WriteAllText((Resolve-Path $f),($m|ConvertTo-Json -Depth 10))"
+
 :: Tao ZIP voi forward slashes (Firefox yeu cau)
 powershell -NoProfile -ExecutionPolicy Bypass -File build-ff.ps1 -Src "%TMP%" -Dst "%ZIP%"
 
