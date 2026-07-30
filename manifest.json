@@ -1,7 +1,7 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "__MSG_ext_name__",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "__MSG_ext_description__",
   "default_locale": "en",
   "icons": {
@@ -12,11 +12,13 @@
   },
   "permissions": [
     "storage",
-    "tabs",
+    "tabs"
+  ],
+  "host_permissions": [
     "*://*/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -25,8 +27,18 @@
       "run_at": "document_start"
     }
   ],
-  "browser_action": {
+  "action": {
     "default_popup": "popup.html",
     "default_title": "__MSG_ext_action_title__"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "a-lovely-day@extension",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "optional": []
+      }
+    }
   }
 }

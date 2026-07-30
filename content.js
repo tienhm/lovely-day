@@ -2,7 +2,21 @@
   'use strict';
 
   const isFB     = /(?:^|\.)facebook\.com$/.test(location.hostname);
-  const HOSTNAME = location.hostname.replace(/^www\./, ''); // key lưu storage (real hostname)
+
+  // Chuẩn hóa về root domain để các subdomain cùng site gộp chung
+  // login.microsoft.com → microsoft.com | maps.google.com.vn → google.com.vn
+  function getRootDomain(hostname) {
+    const h = hostname.replace(/^www\./, '');
+    const parts = h.split('.');
+    if (parts.length <= 2) return h;
+    const last = parts[parts.length - 1] || '';
+    const secondLast = parts[parts.length - 2] || '';
+    const twoLevel = ['com','co','gov','org','net','edu','ac'];
+    const keep = (last.length === 2 && twoLevel.includes(secondLast)) ? 3 : 2;
+    return parts.slice(-keep).join('.');
+  }
+
+  const HOSTNAME = getRootDomain(location.hostname); // key lưu storage (root domain)
 
   // Lấy tên chính của domain, bỏ subdomain và TLD
   // Ví dụ: maps.google.com.vn → google | www.bbc.co.uk → bbc | youtube.com → youtube
@@ -20,14 +34,10 @@
   const DOMAIN = getSiteName(location.hostname);
 
   // Incognito/Private: dùng bộ đếm chung, không phân biệt URL
+  // isIncognito sẽ được xác định async ở cuối file (MV3 Chrome không còn chrome.extension.inIncognitoContext)
   let isIncognito = false;
-  try { isIncognito = !!(chrome.extension && chrome.extension.inIncognitoContext); } catch {}
-
-  // STORE_HOST: key dùng trong storage — '__private__' cho incognito, real host bình thường
-  const STORE_HOST   = isIncognito ? '__private__' : HOSTNAME;
-  // DISPLAY_NAME: tên hiển thị trên clock và lock screen
-  // (i18n key 'label_private' — nếu chưa có key thì fallback về 'Private')
-  const DISPLAY_NAME = isIncognito ? (chrome.i18n.getMessage('label_private') || 'Private') : DOMAIN;
+  let STORE_HOST = HOSTNAME;
+  let DISPLAY_NAME = DOMAIN;
 
   // ─── i18n helper ─────────────────────────────────────────────
   const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
@@ -46,7 +56,7 @@
 
   // ─── Lock ────────────────────────────────────────────────────
   // Dùng chrome.storage.local thay localStorage để Facebook JS không xóa được
-  const LOCK_STORAGE_KEY = 'ald_lock_' + STORE_HOST;
+  let LOCK_STORAGE_KEY;
   const LIMITS_KEY       = 'ald_limits';
 
   // Ẩn trang ngay lập tức trong lúc check lock (tránh flash nội dung)
@@ -564,8 +574,8 @@
       });
     }
 
-    // ── Timer — chrome.storage.sync ──
-    const SYNC_KEY = 'ald_' + todayStr();
+    // ── Timer — chrome.storage.local ──
+    let SYNC_KEY = 'ald_' + todayStr();
 
     function fmt(s) {
       s = Math.max(0, s);
@@ -616,13 +626,82 @@
     let dayCache    = {};
     let localLoaded = false; // guard: không save trước khi local.get callback chạy
 
-    function saveTimer() {
+    // Gửi timer lên background để ghi vào storage chính (persistent cả incognito)
+    function saveTimer(callback) {
       if (!localLoaded) return; // tránh ghi đè data thật bằng {} khi pagehide quá sớm
-      dayCache[STORE_HOST] = seconds;
-      chrome.storage.local.set({ [SYNC_KEY]: dayCache });
+      saveDay(SYNC_KEY, seconds, callback);
     }
 
-    window.addEventListener('pagehide', saveTimer);
+    // Helpers gửi/nhận qua background — tránh content script incognito tự ghi storage bị mất
+    function saveDay(key, value, callback) {
+      const msg = { type: 'saveTimer', key, host: STORE_HOST, seconds: value };
+      if (typeof callback === 'function') {
+        chrome.runtime.sendMessage(msg, callback);
+      } else {
+        chrome.runtime.sendMessage(msg);
+      }
+    }
+    function getDay(key, callback) {
+      chrome.runtime.sendMessage(
+        { type: 'getTimer', key, host: STORE_HOST },
+        response => callback((response && response.dayCache) || {})
+      );
+    }
+
+    // Lấy storage tươi từ background, merge với local, hỗ trợ đổi ngày, rồi ghi lại
+    let isSaving = false;
+    function mergeAndSaveTimer(callback) {
+      if (!localLoaded) { if (callback) callback(); return; }
+      if (isSaving) { if (callback) callback(); return; }
+
+      const currentToday = todayStr();
+      const currentKeyDate = SYNC_KEY.replace('ald_', '');
+
+      if (currentToday !== currentKeyDate) {
+        // Đang qua ngày mới: lưu giây tích lũy vào key cũ rồi chuyển sang key mới
+        isSaving = true;
+        const oldKey = SYNC_KEY;
+        const oldSeconds = seconds;
+        getDay(oldKey, oldFresh => {
+          const oldStored = Math.round(oldFresh[STORE_HOST] || 0);
+          const mergedOld = { ...oldFresh, [STORE_HOST]: Math.max(oldStored, oldSeconds) };
+          saveDay(oldKey, mergedOld[STORE_HOST], () => {
+            SYNC_KEY = 'ald_' + currentToday;
+            getDay(SYNC_KEY, newFresh => {
+              dayCache = newFresh;
+              const newStored = Math.round(dayCache[STORE_HOST] || 0);
+              // Giữ lại thời gian đã trôi qua trong lúc đổi ngày, lấy max với storage
+              seconds = Math.max(newStored, seconds - oldSeconds);
+              saveDay(SYNC_KEY, seconds, () => {
+                isSaving = false;
+                timeEl.textContent = fmtDisplay();
+                updateColor();
+                if (callback) callback();
+              });
+            });
+          });
+        });
+        return;
+      }
+
+      isSaving = true;
+      getDay(SYNC_KEY, fresh => {
+        const stored = Math.round(fresh[STORE_HOST] || 0);
+        dayCache = { ...fresh, [STORE_HOST]: Math.max(stored, seconds) };
+        seconds  = Math.max(stored, seconds);
+        saveDay(SYNC_KEY, seconds, () => {
+          isSaving = false;
+          if (callback) callback();
+        });
+      });
+    }
+
+    // Lưu nhanh khi page lifecycle events; kết hợp merge để tránh ghi đè
+    window.addEventListener('pagehide', () => { saveTimer(); mergeAndSaveTimer(); });
+    window.addEventListener('beforeunload', () => { saveTimer(); mergeAndSaveTimer(); });
+    if ('onfreeze' in document) {
+      document.addEventListener('freeze', () => { saveTimer(); mergeAndSaveTimer(); });
+    }
 
     // Cập nhật ngay khi popup thay đổi limit
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -633,87 +712,130 @@
       }
     });
 
-    // Bước 1: load timer + grace từ local (nhanh, cùng device)
-    chrome.storage.local.get([SYNC_KEY, GRACE_KEY], localRes => {
-      dayCache    = localRes[SYNC_KEY] || {};
+    // Bước 1: load timer từ background (persistent cả incognito), sau đó grace
+    getDay(SYNC_KEY, timerDayCache => {
+      dayCache    = timerDayCache;
       seconds     = Math.round(dayCache[STORE_HOST] || 0);
       localLoaded = true;
-      const grace = localRes[GRACE_KEY];
-      if (grace && grace.until > Date.now()) {
-        graceUntil = grace.until;
-      } else if (grace) {
-        chrome.storage.local.remove(GRACE_KEY);
-      }
 
-      timeEl.textContent = fmtDisplay();
-      updateColor();
+      chrome.storage.local.get([GRACE_KEY], graceRes => {
+        const grace = graceRes[GRACE_KEY];
+        if (grace && grace.until > Date.now()) {
+          graceUntil = grace.until;
+        } else if (grace) {
+          chrome.storage.local.remove(GRACE_KEY);
+        }
 
-      // visibilitychange đăng ký sau khi graceUntil đã sẵn sàng
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          saveTimer();
-        } else {
-          chrome.storage.local.get([SYNC_KEY], result => {
-            const fresh  = result[SYNC_KEY] || {};
-            const stored = Math.round(fresh[STORE_HOST] || 0);
-            dayCache = { ...fresh, [STORE_HOST]: Math.max(stored, seconds) };
-            if (stored > seconds) {
-              seconds = stored;
+        timeEl.textContent = fmtDisplay();
+        updateColor();
+
+        // visibilitychange đăng ký sau khi graceUntil đã sẵn sàng
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            saveTimer();
+            mergeAndSaveTimer();
+          } else {
+            mergeAndSaveTimer(() => {
               timeEl.textContent = fmtDisplay();
               updateColor();
-            }
+            });
+          }
+        });
+
+        if ('onresume' in document) {
+          document.addEventListener('resume', () => {
+            mergeAndSaveTimer(() => {
+              timeEl.textContent = fmtDisplay();
+              updateColor();
+            });
           });
         }
-      });
 
-      // Interval khởi động ngay sau local.get — không phụ thuộc sync.get
-      let intervalId;
-      intervalId = setInterval(() => {
-        const paused = document.hidden;
-        dotEl.classList.toggle('paused', paused);
-        if (paused) return;
-        seconds++;
-        timeEl.textContent = fmtDisplay();
-        updateColor();
-        if (timeLimit !== null && seconds >= timeLimit) {
-          if (graceUntil && Date.now() < graceUntil) {
-            // Đang trong grace period — chưa lock
-          } else {
-            graceUntil = 0;
-            clearInterval(intervalId);
-            saveTimer();
-            lockForToday();
-            return;
+        // Interval khởi động ngay sau khi load timer
+        let intervalId;
+        intervalId = setInterval(() => {
+          // Kiểm tra chuyển ngày mỗi giây
+          if (todayStr() !== SYNC_KEY.replace('ald_', '')) {
+            mergeAndSaveTimer();
           }
-        }
-        if (seconds % 30 === 0) saveTimer();
-      }, 1000);
 
-      // Bước 2: load limits từ sync (có thể chậm hơn) — áp dụng khi sẵn sàng
-      chrome.storage.sync.get([LIMITS_KEY], syncRes => {
-        applyLimit((syncRes || {})[LIMITS_KEY] || {});
-        timeEl.textContent = fmtDisplay();
-        updateColor();
+          const paused = document.hidden;
+          dotEl.classList.toggle('paused', paused);
+          if (paused) return;
+          seconds++;
+          timeEl.textContent = fmtDisplay();
+          updateColor();
+          if (timeLimit !== null && seconds >= timeLimit) {
+            if (graceUntil && Date.now() < graceUntil) {
+              // Đang trong grace period — chưa lock
+            } else {
+              graceUntil = 0;
+              clearInterval(intervalId);
+              saveTimer();
+              mergeAndSaveTimer(lockForToday);
+              return;
+            }
+          }
+          // Lưu mỗi 30 giây (background persist nên mất tối đa 30")
+          if (seconds % 30 === 0) mergeAndSaveTimer();
+        }, 1000);
+
+        // Bước 2: load limits từ sync (có thể chậm hơn) — áp dụng khi sẵn sàng
+        chrome.storage.sync.get([LIMITS_KEY], syncRes => {
+          applyLimit((syncRes || {})[LIMITS_KEY] || {});
+          timeEl.textContent = fmtDisplay();
+          updateColor();
+        });
       });
     });
   }
 
-  // ─── Async lock check ────────────────────────────────────────
+  // ─── Async lock check & start app ────────────────────────────
   // chrome.storage.local: Facebook JS không thể xóa, persist qua reload
-  chrome.storage.local.get([LOCK_STORAGE_KEY], result => {
-    const lock = result[LOCK_STORAGE_KEY];
-    if (lock && lock.date === todayStr()) {
-      showLockScreen();
+  function startApp() {
+    chrome.storage.local.get([LOCK_STORAGE_KEY], result => {
+      const lock = result[LOCK_STORAGE_KEY];
+      if (lock && lock.date === todayStr()) {
+        showLockScreen();
+        return;
+      }
+      clearTimeout(lockCheckFallback);
+      lockCheckStyle.remove();
+      if (startFB) startFB();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFloatingTimer);
+      } else {
+        initFloatingTimer();
+      }
+    });
+  }
+
+  // Xác định incognito: MV2/Firefox dùng chrome.extension.inIncognitoContext,
+  // MV3 Chrome dùng message lên background (chrome.extension bị xóa)
+  function detectIncognito(callback) {
+    if (chrome.extension && typeof chrome.extension.inIncognitoContext !== 'undefined') {
+      callback(!!chrome.extension.inIncognitoContext);
       return;
     }
-    clearTimeout(lockCheckFallback);
-    lockCheckStyle.remove();
-    if (startFB) startFB();
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initFloatingTimer);
-    } else {
-      initFloatingTimer();
+    if (typeof chrome.runtime.sendMessage === 'function') {
+      try {
+        chrome.runtime.sendMessage({ type: 'getIncognito' }, response => {
+          callback((response && response.incognito) || false);
+        });
+      } catch {
+        callback(false);
+      }
+      return;
     }
+    callback(false);
+  }
+
+  detectIncognito(incog => {
+    isIncognito = incog;
+    STORE_HOST   = isIncognito ? '__private__' : HOSTNAME;
+    DISPLAY_NAME = isIncognito ? (chrome.i18n.getMessage('label_private') || 'Private') : DOMAIN;
+    LOCK_STORAGE_KEY = 'ald_lock_' + STORE_HOST;
+    startApp();
   });
 
 })();

@@ -1,5 +1,18 @@
 // ── i18n ──────────────────────────────────────────────────────
 const t = (key, subs) => chrome.i18n.getMessage(key, subs) || key;
+
+// Chuẩn hóa về root domain (giống content.js)
+function getRootDomain(hostname) {
+  const h = hostname.replace(/^www\./, '');
+  const parts = h.split('.');
+  if (parts.length <= 2) return h;
+  const last = parts[parts.length - 1] || '';
+  const secondLast = parts[parts.length - 2] || '';
+  const twoLevel = ['com','co','gov','org','net','edu','ac'];
+  const keep = (last.length === 2 && twoLevel.includes(secondLast)) ? 3 : 2;
+  return parts.slice(-keep).join('.');
+}
+
 document.querySelectorAll('[data-i18n]').forEach(el => {
   const msg = t(el.dataset.i18n);
   if (msg) el.textContent = msg;
@@ -306,9 +319,23 @@ function renderAllLimits(limits) {
   });
 }
 
+// Gộp các key subdomain cũ (trước khi có getRootDomain) về root domain
+function migrateLimits(lim) {
+  const out = {};
+  let changed = false;
+  for (const [domain, secs] of Object.entries(lim)) {
+    const root = getRootDomain(domain);
+    if (root !== domain) changed = true;
+    out[root] = Math.max(out[root] || 0, secs);
+  }
+  return { migrated: out, changed };
+}
+
 function loadLimits() {
   chrome.storage.sync.get([LIMITS_KEY], r => {
-    const lim = r[LIMITS_KEY] || {};
+    const raw = r[LIMITS_KEY] || {};
+    const { migrated: lim, changed } = migrateLimits(raw);
+    if (changed) chrome.storage.sync.set({ [LIMITS_KEY]: lim });
     renderCurrentLimit(lim);
     renderAllLimits(lim);
   });
@@ -370,7 +397,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
   try {
     const url = tabs[0] && tabs[0].url;
     if (url && !url.startsWith('chrome') && !url.startsWith('about') && !url.startsWith('edge')) {
-      currentDomain = new URL(url).hostname.replace(/^www\./, '');
+      currentDomain = getRootDomain(new URL(url).hostname);
     }
   } catch {}
 
@@ -384,4 +411,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
 });
 
 // ── Init ──────────────────────────────────────────────────────
+const versionEl = document.getElementById('appVersion');
+if (versionEl) versionEl.textContent = 'v' + chrome.runtime.getManifest().version;
+
 loadAndRender();
