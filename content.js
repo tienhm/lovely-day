@@ -383,7 +383,8 @@
         if (videosStyleEl) videosStyleEl.disabled = false; // keep blocking via CSS
         showVideoConfirm();
       } else {
-        if (videosStyleEl) videosStyleEl.disabled = !blocking || (onDirectVideo && videoConfirmed);
+        if (videosStyleEl) videosStyleEl.disabled = !blocking || videoConfirmed;
+        resetVideoConfirmed();
         removeVideoConfirm();
       }
     }
