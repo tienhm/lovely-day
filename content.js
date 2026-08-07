@@ -307,6 +307,11 @@
     let videoConfirmEl = null;
     let videoConfirmed = false;
 
+    function resetVideoConfirmed() {
+      if (videoConfirmed) document.documentElement.style.removeProperty('overflow');
+      videoConfirmed = false;
+    }
+
     function removeVideoConfirm() {
       if (videoConfirmEl) { videoConfirmEl.remove(); videoConfirmEl = null; }
     }
@@ -350,6 +355,7 @@
           if (videosStyleEl) videosStyleEl.disabled = true;
           if (reelsStyleEl)  reelsStyleEl.disabled  = true;
           document.querySelectorAll('.' + BLOCKED_CLASS).forEach(el => el.classList.remove(BLOCKED_CLASS));
+          document.documentElement.style.setProperty('overflow', 'hidden', 'important');
         });
         backBtn.addEventListener('click', () => history.back());
       };
@@ -407,7 +413,7 @@
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
-            videoConfirmed = false;
+            resetVideoConfirmed();
             setTimeout(() => { applySettings(currentSettings); scan(); }, 400);
           }
           return r;
@@ -416,7 +422,7 @@
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
       window.addEventListener('popstate', () => {
         redirectIfReels();
-        videoConfirmed = false;
+        resetVideoConfirmed();
         applySettings(currentSettings);
         setTimeout(scan, 400);
       });
