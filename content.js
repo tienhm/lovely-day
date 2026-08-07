@@ -424,6 +424,7 @@
     function patchHistory() {
       function wrap(orig) {
         return function (state, title, url) {
+          if (videoConfirmed && url && isDirectVideoUrl(url)) return; // block prev/next nav while watching
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
