@@ -58,5 +58,8 @@
   "btn_clear":       { "message": "Tout effacer" },
   "import_success":  { "message": "$1 entrées importées." },
   "import_duplicate":{ "message": "Ce fichier a déjà été importé. Importer quand même ?" },
-  "import_error":    { "message": "Fichier invalide. Utilisez un CSV exporté par cette extension." }
+  "import_error":    { "message": "Fichier invalide. Utilisez un CSV exporté par cette extension." },
+  "video_confirm_msg":   { "message": "Le blocage vidéo est activé. Regarder quand même ?" },
+  "video_confirm_watch": { "message": "Regarder" },
+  "video_confirm_back":  { "message": "Retour" }
 }

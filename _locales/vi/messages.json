@@ -58,5 +58,8 @@
   "btn_clear":       { "message": "Xóa tất cả" },
   "import_success":  { "message": "Đã nhập $1 bản ghi." },
   "import_duplicate":{ "message": "File này đã được import rồi. Vẫn muốn import lại?" },
-  "import_error":    { "message": "File không hợp lệ. Vui lòng dùng CSV được xuất từ extension này." }
+  "import_error":    { "message": "File không hợp lệ. Vui lòng dùng CSV được xuất từ extension này." },
+  "video_confirm_msg":   { "message": "Bạn đang bật chặn video. Vẫn muốn xem video này?" },
+  "video_confirm_watch": { "message": "Xem" },
+  "video_confirm_back":  { "message": "Quay lại" }
 }

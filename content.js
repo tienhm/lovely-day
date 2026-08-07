@@ -304,14 +304,73 @@
       } catch { return false; }
     }
 
-    function applySettings(settings) {
-      currentSettings = Object.assign({}, DEFAULT_SETTINGS, settings);
-      if (reelsStyleEl)  reelsStyleEl.disabled  = !currentSettings.blockReels;
-      if (videosStyleEl) videosStyleEl.disabled = !currentSettings.blockAllVideos || isDirectVideoUrl(location.href);
+    let videoConfirmEl = null;
+    let videoConfirmed = false;
+
+    function removeVideoConfirm() {
+      if (videoConfirmEl) { videoConfirmEl.remove(); videoConfirmEl = null; }
+    }
+
+    function showVideoConfirm() {
+      if (videoConfirmEl) return;
+      const el = document.createElement('div');
+      el.id = 'ald-video-confirm';
+      el.style.cssText = [
+        'position:fixed', 'inset:0', 'z-index:2147483646',
+        'background:rgba(10,10,16,0.88)',
+        'backdrop-filter:blur(10px)', '-webkit-backdrop-filter:blur(10px)',
+        'display:flex', 'flex-direction:column', 'align-items:center', 'justify-content:center', 'gap:18px',
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', 'color:#fff', 'color-scheme:dark',
+      ].join(';');
+      setElHTML(el, `
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.75)"><path d="M8 5v14l11-7z"/></svg>
+        <div style="font-size:16px;font-weight:500;text-align:center;max-width:300px;line-height:1.5;color:rgba(255,255,255,.85)">
+          ${t('video_confirm_msg')}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button id="ald-video-watch" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+            border-radius:10px;color:#fff;font-size:14px;font-family:inherit;padding:10px 28px;cursor:pointer;transition:background .2s">
+            ${t('video_confirm_watch')}
+          </button>
+          <button id="ald-video-back" style="background:none;border:1px solid rgba(255,255,255,.1);
+            border-radius:10px;color:rgba(255,255,255,.45);font-size:14px;font-family:inherit;padding:10px 20px;cursor:pointer;transition:background .2s">
+            ${t('video_confirm_back')}
+          </button>
+        </div>
+      `);
+      const append = () => {
+        document.body.appendChild(el);
+        const watchBtn = el.querySelector('#ald-video-watch');
+        const backBtn  = el.querySelector('#ald-video-back');
+        watchBtn.addEventListener('mouseover', () => { watchBtn.style.background = 'rgba(255,255,255,.22)'; });
+        watchBtn.addEventListener('mouseout',  () => { watchBtn.style.background = 'rgba(255,255,255,.12)'; });
+        watchBtn.addEventListener('click', () => {
+          videoConfirmed = true;
+          removeVideoConfirm();
+          if (videosStyleEl) videosStyleEl.disabled = true;
+        });
+        backBtn.addEventListener('click', () => history.back());
+      };
+      document.body ? append() : document.addEventListener('DOMContentLoaded', append);
+      videoConfirmEl = el;
     }
 
     function refreshVideoBlocking() {
-      if (videosStyleEl) videosStyleEl.disabled = !currentSettings.blockAllVideos || isDirectVideoUrl(location.href);
+      const onDirectVideo = isDirectVideoUrl(location.href);
+      const blocking = currentSettings.blockAllVideos;
+      if (blocking && onDirectVideo && !videoConfirmed) {
+        if (videosStyleEl) videosStyleEl.disabled = false; // keep blocking via CSS
+        showVideoConfirm();
+      } else {
+        if (videosStyleEl) videosStyleEl.disabled = !blocking || (onDirectVideo && videoConfirmed);
+        removeVideoConfirm();
+      }
+    }
+
+    function applySettings(settings) {
+      currentSettings = Object.assign({}, DEFAULT_SETTINGS, settings);
+      if (reelsStyleEl) reelsStyleEl.disabled = !currentSettings.blockReels;
+      refreshVideoBlocking();
     }
 
     function loadSettings() {
@@ -339,12 +398,20 @@
         return function (state, title, url) {
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
-          else { setTimeout(() => { refreshVideoBlocking(); scan(); }, 400); }
+          else {
+            videoConfirmed = false;
+            setTimeout(() => { refreshVideoBlocking(); scan(); }, 400);
+          }
           return r;
         };
       }
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
-      window.addEventListener('popstate', () => { redirectIfReels(); refreshVideoBlocking(); setTimeout(scan, 400); });
+      window.addEventListener('popstate', () => {
+        redirectIfReels();
+        videoConfirmed = false;
+        refreshVideoBlocking();
+        setTimeout(scan, 400);
+      });
     }
 
     function block(el) {

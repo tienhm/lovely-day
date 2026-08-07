@@ -58,5 +58,8 @@
   "btn_clear":       { "message": "Clear All" },
   "import_success":  { "message": "Imported $1 records." },
   "import_duplicate":{ "message": "This file was already imported. Import again anyway?" },
-  "import_error":    { "message": "Invalid file. Please use a CSV exported by this extension." }
+  "import_error":    { "message": "Invalid file. Please use a CSV exported by this extension." },
+  "video_confirm_msg":   { "message": "You have video blocking enabled. Watch this video anyway?" },
+  "video_confirm_watch": { "message": "Watch" },
+  "video_confirm_back":  { "message": "Go back" }
 }
