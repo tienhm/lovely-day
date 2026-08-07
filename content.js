@@ -397,7 +397,7 @@
       function wrap(orig) {
         return function (state, title, url) {
           const r = orig.apply(this, arguments);
-          if (url && isReelsUrl(url)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
+          if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
             videoConfirmed = false;
             setTimeout(() => { refreshVideoBlocking(); scan(); }, 400);
