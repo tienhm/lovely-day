@@ -19,6 +19,9 @@ copy background.js     %TMP%\              > nul
 xcopy icons    %TMP%\icons\    /e /i /q > nul
 xcopy _locales %TMP%\_locales\ /e /i /q > nul
 
+:: Strip scripts khoi manifest (Chrome/Edge chi dung service_worker trong MV3)
+powershell -NoProfile -Command "$f='%TMP%\manifest.json'; $m=Get-Content $f -Raw|ConvertFrom-Json; $m.background.PSObject.Properties.Remove('scripts'); [IO.File]::WriteAllText((Resolve-Path $f),($m|ConvertTo-Json -Depth 10))"
+
 powershell -NoProfile -Command "Compress-Archive -Path '%TMP%\*' -DestinationPath '%OUT%' -Force"
 
 rmdir /s /q %TMP%
