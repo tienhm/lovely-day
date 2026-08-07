@@ -306,18 +306,29 @@
 
     let videoConfirmEl = null;
     let videoConfirmed = false;
+    let hiddenNavBtns = [];
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
 
     function lockScroll() {
       document.documentElement.style.setProperty('overflow', 'hidden', 'important');
       window.addEventListener('wheel',      stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('touchmove',  stopScrollEvent, { passive: false, capture: true });
+      // Hide prev/next reel navigation arrows (48x48 SVG buttons)
+      document.querySelectorAll('[role="button"] > svg[width="48"][height="48"]').forEach(svg => {
+        const btn = svg.closest('[role="button"]');
+        if (btn && !hiddenNavBtns.includes(btn)) {
+          btn.style.setProperty('display', 'none', 'important');
+          hiddenNavBtns.push(btn);
+        }
+      });
     }
 
     function unlockScroll() {
       document.documentElement.style.removeProperty('overflow');
       window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
+      hiddenNavBtns.forEach(btn => btn.style.removeProperty('display'));
+      hiddenNavBtns = [];
     }
 
     function resetVideoConfirmed() {
