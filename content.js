@@ -296,11 +296,11 @@
       root.appendChild(videosStyleEl);
     }
 
-    // Direct video URLs: show video normally even when blockAllVideos is on
+    // Direct video URLs: show confirm overlay instead of silently blocking
     function isDirectVideoUrl(url) {
       try {
         const p = new URL(url, location.href).pathname;
-        return /^\/(share\/v|videos)\//i.test(p) || /^\/watch(\/|$)/i.test(p);
+        return /^\/(share\/v|videos|reel)\//i.test(p) || /^\/watch(\/|$)/i.test(p);
       } catch { return false; }
     }
 
@@ -390,7 +390,13 @@
     }
 
     function redirectIfReels() {
-      if (isReelsUrl(location.href)) location.replace('https://www.facebook.com/');
+      if (!isReelsUrl(location.href)) return;
+      // Nếu user navigate trực tiếp (paste URL, bookmark) thì không redirect — để overlay confirm xử lý
+      try {
+        const ref = document.referrer;
+        if (!ref || !new URL(ref).hostname.endsWith('facebook.com')) return;
+      } catch {}
+      location.replace('https://www.facebook.com/');
     }
 
     function patchHistory() {
