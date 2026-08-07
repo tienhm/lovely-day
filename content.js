@@ -306,29 +306,27 @@
 
     let videoConfirmEl = null;
     let videoConfirmed = false;
-    let hiddenNavBtns = [];
+    let navHideStyleEl = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
 
     function lockScroll() {
       document.documentElement.style.setProperty('overflow', 'hidden', 'important');
       window.addEventListener('wheel',      stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('touchmove',  stopScrollEvent, { passive: false, capture: true });
-      // Hide prev/next reel navigation arrows (48x48 SVG buttons)
-      document.querySelectorAll('[role="button"] > svg[width="48"][height="48"]').forEach(svg => {
-        const btn = svg.closest('[role="button"]');
-        if (btn && !hiddenNavBtns.includes(btn)) {
-          btn.style.setProperty('display', 'none', 'important');
-          hiddenNavBtns.push(btn);
-        }
-      });
+      // Hide prev/next reel nav arrows via CSS (survives React re-renders)
+      if (!navHideStyleEl) {
+        navHideStyleEl = document.createElement('style');
+        navHideStyleEl.textContent = '[role="button"]:has(>svg[width="48"][height="48"]){display:none!important}';
+        (document.head || document.documentElement).appendChild(navHideStyleEl);
+      }
+      navHideStyleEl.disabled = false;
     }
 
     function unlockScroll() {
       document.documentElement.style.removeProperty('overflow');
       window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
-      hiddenNavBtns.forEach(btn => btn.style.removeProperty('display'));
-      hiddenNavBtns = [];
+      if (navHideStyleEl) navHideStyleEl.disabled = true;
     }
 
     function resetVideoConfirmed() {
@@ -395,7 +393,7 @@
         showVideoConfirm();
       } else {
         if (videosStyleEl) videosStyleEl.disabled = !blocking || videoConfirmed;
-        resetVideoConfirmed();
+        if (!blocking) resetVideoConfirmed(); // unlock scroll only when blocking is turned off
         removeVideoConfirm();
       }
     }
