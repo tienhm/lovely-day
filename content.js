@@ -348,6 +348,8 @@
           videoConfirmed = true;
           removeVideoConfirm();
           if (videosStyleEl) videosStyleEl.disabled = true;
+          if (reelsStyleEl)  reelsStyleEl.disabled  = true;
+          document.querySelectorAll('.' + BLOCKED_CLASS).forEach(el => el.classList.remove(BLOCKED_CLASS));
         });
         backBtn.addEventListener('click', () => history.back());
       };
@@ -406,7 +408,7 @@
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
             videoConfirmed = false;
-            setTimeout(() => { refreshVideoBlocking(); scan(); }, 400);
+            setTimeout(() => { applySettings(currentSettings); scan(); }, 400);
           }
           return r;
         };
@@ -415,7 +417,7 @@
       window.addEventListener('popstate', () => {
         redirectIfReels();
         videoConfirmed = false;
-        refreshVideoBlocking();
+        applySettings(currentSettings);
         setTimeout(scan, 400);
       });
     }
