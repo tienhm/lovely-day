@@ -296,10 +296,22 @@
       root.appendChild(videosStyleEl);
     }
 
+    // Direct video URLs: show video normally even when blockAllVideos is on
+    function isDirectVideoUrl(url) {
+      try {
+        const p = new URL(url, location.href).pathname;
+        return /^\/(share\/v|videos)\//i.test(p) || /^\/watch(\/|$)/i.test(p);
+      } catch { return false; }
+    }
+
     function applySettings(settings) {
       currentSettings = Object.assign({}, DEFAULT_SETTINGS, settings);
       if (reelsStyleEl)  reelsStyleEl.disabled  = !currentSettings.blockReels;
-      if (videosStyleEl) videosStyleEl.disabled = !currentSettings.blockAllVideos;
+      if (videosStyleEl) videosStyleEl.disabled = !currentSettings.blockAllVideos || isDirectVideoUrl(location.href);
+    }
+
+    function refreshVideoBlocking() {
+      if (videosStyleEl) videosStyleEl.disabled = !currentSettings.blockAllVideos || isDirectVideoUrl(location.href);
     }
 
     function loadSettings() {
@@ -327,12 +339,12 @@
         return function (state, title, url) {
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
-          else setTimeout(scan, 400);
+          else { setTimeout(() => { refreshVideoBlocking(); scan(); }, 400); }
           return r;
         };
       }
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
-      window.addEventListener('popstate', () => { redirectIfReels(); setTimeout(scan, 400); });
+      window.addEventListener('popstate', () => { redirectIfReels(); refreshVideoBlocking(); setTimeout(scan, 400); });
     }
 
     function block(el) {
@@ -387,7 +399,7 @@
         video.readyState >= 1 ? check() : video.addEventListener('loadedmetadata', check, { once: true });
       });
 
-      if (currentSettings.blockAllVideos) {
+      if (currentSettings.blockAllVideos && !isDirectVideoUrl(location.href)) {
         document.querySelectorAll('[data-video-id]').forEach(el => {
           if (el[SCANNED_ATTR]) return;
           el[SCANNED_ATTR] = true;
