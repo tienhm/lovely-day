@@ -306,9 +306,22 @@
 
     let videoConfirmEl = null;
     let videoConfirmed = false;
+    const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
+
+    function lockScroll() {
+      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+      window.addEventListener('wheel',      stopScrollEvent, { passive: false, capture: true });
+      window.addEventListener('touchmove',  stopScrollEvent, { passive: false, capture: true });
+    }
+
+    function unlockScroll() {
+      document.documentElement.style.removeProperty('overflow');
+      window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
+      window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
+    }
 
     function resetVideoConfirmed() {
-      if (videoConfirmed) document.documentElement.style.removeProperty('overflow');
+      if (videoConfirmed) unlockScroll();
       videoConfirmed = false;
     }
 
@@ -355,7 +368,7 @@
           if (videosStyleEl) videosStyleEl.disabled = true;
           if (reelsStyleEl)  reelsStyleEl.disabled  = true;
           document.querySelectorAll('.' + BLOCKED_CLASS).forEach(el => el.classList.remove(BLOCKED_CLASS));
-          document.documentElement.style.setProperty('overflow', 'hidden', 'important');
+          lockScroll();
         });
         backBtn.addEventListener('click', () => history.back());
       };
