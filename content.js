@@ -307,6 +307,7 @@
     let videoConfirmEl = null;
     let videoConfirmed = false;
     let navHideStyleEl = null;
+    let urlWatcherId = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
     const stopScrollKey  = e => {
       if (['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) {
@@ -315,7 +316,6 @@
     };
 
     function lockScroll() {
-      // Dùng event interception thay vì overflow:hidden để tránh làm hỏng scroll state của Facebook
       window.addEventListener('wheel',     stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('touchmove', stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('keydown',   stopScrollKey,   { capture: true });
@@ -325,6 +325,12 @@
         (document.head || document.documentElement).appendChild(navHideStyleEl);
       }
       navHideStyleEl.disabled = false;
+      // Fallback: poll URL every 150ms — catches any navigation mechanism (X button, etc.)
+      if (!urlWatcherId) {
+        urlWatcherId = setInterval(() => {
+          if (!isDirectVideoUrl(location.href)) resetVideoConfirmed();
+        }, 150);
+      }
     }
 
     function unlockScroll() {
@@ -332,6 +338,7 @@
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
       window.removeEventListener('keydown',   stopScrollKey,   { capture: true });
       if (navHideStyleEl) navHideStyleEl.disabled = true;
+      if (urlWatcherId) { clearInterval(urlWatcherId); urlWatcherId = null; }
     }
 
     function resetVideoConfirmed() {
@@ -439,12 +446,6 @@
       function wrap(orig) {
         return function (state, title, url) {
           if (videoConfirmed && url && isDirectVideoUrl(url)) return; // block prev/next nav while watching
-          if (videoConfirmed && url && !isDirectVideoUrl(url)) {
-            // Navigating away from video — force full reload to reset scroll state cleanly
-            resetVideoConfirmed();
-            location.replace(new URL(url, location.href).href);
-            return;
-          }
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
@@ -456,12 +457,6 @@
       }
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
       window.addEventListener('popstate', () => {
-        if (videoConfirmed && !isDirectVideoUrl(location.href)) {
-          // Back navigation away from video — force reload to reset scroll state cleanly
-          resetVideoConfirmed();
-          location.replace(location.href);
-          return;
-        }
         redirectIfReels();
         resetVideoConfirmed();
         applySettings(currentSettings);
