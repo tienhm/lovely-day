@@ -308,12 +308,17 @@
     let videoConfirmed = false;
     let navHideStyleEl = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
+    const stopScrollKey  = e => {
+      if (['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) {
+        e.preventDefault(); e.stopPropagation();
+      }
+    };
 
     function lockScroll() {
-      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-      window.addEventListener('wheel',      stopScrollEvent, { passive: false, capture: true });
-      window.addEventListener('touchmove',  stopScrollEvent, { passive: false, capture: true });
-      // Hide prev/next reel nav arrows via CSS (survives React re-renders)
+      // Dùng event interception thay vì overflow:hidden để tránh làm hỏng scroll state của Facebook
+      window.addEventListener('wheel',     stopScrollEvent, { passive: false, capture: true });
+      window.addEventListener('touchmove', stopScrollEvent, { passive: false, capture: true });
+      window.addEventListener('keydown',   stopScrollKey,   { capture: true });
       if (!navHideStyleEl) {
         navHideStyleEl = document.createElement('style');
         navHideStyleEl.textContent = '[role="button"]:has(>svg[width="48"][height="48"]){display:none!important}';
@@ -323,9 +328,9 @@
     }
 
     function unlockScroll() {
-      document.documentElement.style.removeProperty('overflow');
       window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
+      window.removeEventListener('keydown',   stopScrollKey,   { capture: true });
       if (navHideStyleEl) navHideStyleEl.disabled = true;
     }
 
