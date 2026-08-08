@@ -439,6 +439,12 @@
       function wrap(orig) {
         return function (state, title, url) {
           if (videoConfirmed && url && isDirectVideoUrl(url)) return; // block prev/next nav while watching
+          if (videoConfirmed && url && !isDirectVideoUrl(url)) {
+            // Navigating away from video — force full reload to reset scroll state cleanly
+            resetVideoConfirmed();
+            location.replace(new URL(url, location.href).href);
+            return;
+          }
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
@@ -450,6 +456,12 @@
       }
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
       window.addEventListener('popstate', () => {
+        if (videoConfirmed && !isDirectVideoUrl(location.href)) {
+          // Back navigation away from video — force reload to reset scroll state cleanly
+          resetVideoConfirmed();
+          location.replace(location.href);
+          return;
+        }
         redirectIfReels();
         resetVideoConfirmed();
         applySettings(currentSettings);
