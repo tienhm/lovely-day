@@ -327,7 +327,10 @@
       // Fallback: poll URL every 150ms — catches any navigation mechanism (X button, etc.)
       if (!urlWatcherId) {
         urlWatcherId = setInterval(() => {
-          if (!isDirectVideoUrl(location.href)) resetVideoConfirmed();
+          if (!isDirectVideoUrl(location.href)) {
+            resetVideoConfirmed();
+            applySettings(currentSettings);
+          }
         }, 150);
       }
     }
