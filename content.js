@@ -2,6 +2,7 @@
   'use strict';
 
   const isFB     = /(?:^|\.)facebook\.com$/.test(location.hostname);
+  const TWO_LEVEL_TLDS = ['com','co','gov','org','net','edu','ac'];
 
   // Chuẩn hóa về root domain để các subdomain cùng site gộp chung
   // login.microsoft.com → microsoft.com | maps.google.com.vn → google.com.vn
@@ -11,12 +12,11 @@
     if (parts.length <= 2) return h;
     const last = parts[parts.length - 1] || '';
     const secondLast = parts[parts.length - 2] || '';
-    const twoLevel = ['com','co','gov','org','net','edu','ac'];
-    const keep = (last.length === 2 && twoLevel.includes(secondLast)) ? 3 : 2;
+    const keep = (last.length === 2 && TWO_LEVEL_TLDS.includes(secondLast)) ? 3 : 2;
     return parts.slice(-keep).join('.');
   }
 
-  const HOSTNAME = getRootDomain(location.hostname); // key lưu storage (root domain)
+  const HOSTNAME = getRootDomain(location.hostname);
 
   // Lấy tên chính của domain, bỏ subdomain và TLD
   // Ví dụ: maps.google.com.vn → google | www.bbc.co.uk → bbc | youtube.com → youtube
@@ -24,8 +24,7 @@
     const parts = hostname.split('.');
     const last       = parts[parts.length - 1] || '';
     const secondLast = parts[parts.length - 2] || '';
-    const twoLevel = ['com','co','gov','org','net','edu','ac'];
-    const idx = (last.length === 2 && twoLevel.includes(secondLast))
+    const idx = (last.length === 2 && TWO_LEVEL_TLDS.includes(secondLast))
       ? parts.length - 3
       : parts.length - 2;
     return parts[Math.max(0, idx)] || hostname;
@@ -393,7 +392,7 @@
         });
         backBtn.addEventListener('click', () => history.back());
       };
-      document.body ? append() : document.addEventListener('DOMContentLoaded', append);
+      append();
       videoConfirmEl = el;
     }
 
@@ -401,11 +400,11 @@
       const onDirectVideo = isDirectVideoUrl(location.href);
       const blocking = currentSettings.blockAllVideos;
       if (blocking && onDirectVideo && !videoConfirmed) {
-        if (videosStyleEl) videosStyleEl.disabled = false; // keep blocking via CSS
+        if (videosStyleEl) videosStyleEl.disabled = false;
         showVideoConfirm();
       } else {
         if (videosStyleEl) videosStyleEl.disabled = !blocking || videoConfirmed;
-        if (!blocking || !onDirectVideo) resetVideoConfirmed(); // unlock when blocking off OR left video page
+        if (!blocking || !onDirectVideo) resetVideoConfirmed();
         removeVideoConfirm();
       }
     }
@@ -445,7 +444,7 @@
     function patchHistory() {
       function wrap(orig) {
         return function (state, title, url) {
-          if (videoConfirmed && url && isDirectVideoUrl(url)) return; // block prev/next nav while watching
+          if (videoConfirmed && url && isDirectVideoUrl(url)) return;
           const r = orig.apply(this, arguments);
           if (url && isReelsUrl(url) && !isDirectVideoUrl(location.href)) setTimeout(() => location.replace('https://www.facebook.com/'), 50);
           else {
@@ -825,11 +824,10 @@
       });
     }
 
-    // Lưu nhanh khi page lifecycle events; kết hợp merge để tránh ghi đè
-    window.addEventListener('pagehide', () => { saveTimer(); mergeAndSaveTimer(); });
-    window.addEventListener('beforeunload', () => { saveTimer(); mergeAndSaveTimer(); });
+    window.addEventListener('pagehide', mergeAndSaveTimer);
+    window.addEventListener('beforeunload', mergeAndSaveTimer);
     if ('onfreeze' in document) {
-      document.addEventListener('freeze', () => { saveTimer(); mergeAndSaveTimer(); });
+      document.addEventListener('freeze', mergeAndSaveTimer);
     }
 
     // Cập nhật ngay khi popup thay đổi limit
