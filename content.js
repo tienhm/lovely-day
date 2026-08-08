@@ -392,8 +392,8 @@
         });
         backBtn.addEventListener('click', () => history.back());
       };
-      append();
       videoConfirmEl = el;
+      document.body ? append() : document.addEventListener('DOMContentLoaded', append);
     }
 
     function refreshVideoBlocking() {
