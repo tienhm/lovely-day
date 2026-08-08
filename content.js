@@ -393,7 +393,7 @@
         showVideoConfirm();
       } else {
         if (videosStyleEl) videosStyleEl.disabled = !blocking || videoConfirmed;
-        if (!blocking) resetVideoConfirmed(); // unlock scroll only when blocking is turned off
+        if (!blocking || !onDirectVideo) resetVideoConfirmed(); // unlock when blocking off OR left video page
         removeVideoConfirm();
       }
     }
