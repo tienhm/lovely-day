@@ -305,6 +305,7 @@
 
     let videoConfirmEl = null;
     let videoConfirmed = false;
+    let navHideStyleEl = null;
     let urlWatcherId = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
     const stopScrollKey   = e => {
@@ -312,11 +313,17 @@
         e.preventDefault(); e.stopPropagation();
       }
     };
-    // Block clicks inside .__fb-dark-mode (prev/next nav zones) — mute button is not in this wrapper
+    // Nav buttons have arrow SVG paths starting with "m15.293"; mute/other buttons do not
+    const isNavArea = el => {
+      const zone = el.closest('.__fb-dark-mode');
+      if (!zone) return false;
+      const btn = el.closest('[role="button"]');
+      // Allow non-nav buttons (e.g. mute) — block nav buttons and their surrounding zone
+      if (btn && !btn.querySelector('svg path[d^="m15.293"]')) return false;
+      return true;
+    };
     const stopNavClick = e => {
-      if (e.target.closest('.__fb-dark-mode')) {
-        e.preventDefault(); e.stopPropagation();
-      }
+      if (isNavArea(e.target)) { e.preventDefault(); e.stopPropagation(); }
     };
 
     function lockScroll() {
@@ -324,6 +331,13 @@
       window.addEventListener('touchmove', stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('keydown',   stopScrollKey,   { capture: true });
       window.addEventListener('click',     stopNavClick,    { capture: true });
+      // Hide nav buttons via CSS (path-specific — survives re-renders, won't match mute button)
+      if (!navHideStyleEl) {
+        navHideStyleEl = document.createElement('style');
+        navHideStyleEl.textContent = '[role="button"]:has(svg path[d^="m15.293"]){display:none!important}';
+        (document.head || document.documentElement).appendChild(navHideStyleEl);
+      }
+      navHideStyleEl.disabled = false;
       // Fallback: poll URL every 150ms — catches any navigation mechanism (X button, etc.)
       if (!urlWatcherId) {
         urlWatcherId = setInterval(() => {
@@ -340,6 +354,7 @@
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
       window.removeEventListener('keydown',   stopScrollKey,   { capture: true });
       window.removeEventListener('click',     stopNavClick,    { capture: true });
+      if (navHideStyleEl) navHideStyleEl.disabled = true;
       if (urlWatcherId) { clearInterval(urlWatcherId); urlWatcherId = null; }
     }
 
