@@ -313,13 +313,14 @@
         e.preventDefault(); e.stopPropagation();
       }
     };
-    // Nav buttons have arrow SVG paths starting with "m15.293"; mute/other buttons do not
+    // Nav buttons have arrow SVG paths starting with "m15.293" or "M15.293"; mute/other buttons do not
+    const NAV_PATH_SEL = 'svg path[d^="m15.293"], svg path[d^="M15.293"]';
     const isNavArea = el => {
       const zone = el.closest('.__fb-dark-mode');
       if (!zone) return false;
       const btn = el.closest('[role="button"]');
       // Allow non-nav buttons (e.g. mute) — block nav buttons and their surrounding zone
-      if (btn && !btn.querySelector('svg path[d^="m15.293"]')) return false;
+      if (btn && !btn.querySelector(NAV_PATH_SEL)) return false;
       return true;
     };
     const stopNavClick = e => {
@@ -334,7 +335,7 @@
       // Hide nav buttons via CSS (path-specific — survives re-renders, won't match mute button)
       if (!navHideStyleEl) {
         navHideStyleEl = document.createElement('style');
-        navHideStyleEl.textContent = '[role="button"]:has(svg path[d^="m15.293"]){display:none!important}';
+        navHideStyleEl.textContent = '[role="button"]:has(svg path[d^="m15.293"]),[role="button"]:has(svg path[d^="M15.293"]){display:none!important}';
         (document.head || document.documentElement).appendChild(navHideStyleEl);
       }
       navHideStyleEl.disabled = false;
@@ -855,10 +856,10 @@
       });
     }
 
-    window.addEventListener('pagehide', mergeAndSaveTimer);
-    window.addEventListener('beforeunload', mergeAndSaveTimer);
+    window.addEventListener('pagehide', () => mergeAndSaveTimer());
+    window.addEventListener('beforeunload', () => mergeAndSaveTimer());
     if ('onfreeze' in document) {
-      document.addEventListener('freeze', mergeAndSaveTimer);
+      document.addEventListener('freeze', () => mergeAndSaveTimer());
     }
 
     // Cập nhật ngay khi popup thay đổi limit
