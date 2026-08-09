@@ -307,8 +307,15 @@
     let videoConfirmed = false;
     let urlWatcherId = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
-    const stopScrollKey  = e => {
+    const stopScrollKey   = e => {
       if (['ArrowDown','ArrowUp','PageDown','PageUp'].includes(e.key)) {
+        e.preventDefault(); e.stopPropagation();
+      }
+    };
+    // Block clicks on nav buttons (.__fb-dark-mode wraps prev/next but not mute)
+    const stopNavClick = e => {
+      const btn = e.target.closest('[role="button"]');
+      if (btn && btn.closest('.__fb-dark-mode') && btn.querySelector('svg[width="48"][height="48"]')) {
         e.preventDefault(); e.stopPropagation();
       }
     };
@@ -317,6 +324,7 @@
       window.addEventListener('wheel',     stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('touchmove', stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('keydown',   stopScrollKey,   { capture: true });
+      window.addEventListener('click',     stopNavClick,    { capture: true });
       // Fallback: poll URL every 150ms — catches any navigation mechanism (X button, etc.)
       if (!urlWatcherId) {
         urlWatcherId = setInterval(() => {
@@ -332,6 +340,7 @@
       window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
       window.removeEventListener('keydown',   stopScrollKey,   { capture: true });
+      window.removeEventListener('click',     stopNavClick,    { capture: true });
       if (urlWatcherId) { clearInterval(urlWatcherId); urlWatcherId = null; }
     }
 
