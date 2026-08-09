@@ -384,6 +384,8 @@
           if (reelsStyleEl)  reelsStyleEl.disabled  = true;
           document.querySelectorAll('.' + BLOCKED_CLASS).forEach(el => el.classList.remove(BLOCKED_CLASS));
           lockScroll();
+          // Force Facebook's player to reinitialize so mute/unmute button works
+          setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         });
         backBtn.addEventListener('click', () => history.back());
       };
