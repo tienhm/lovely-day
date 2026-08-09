@@ -312,10 +312,9 @@
         e.preventDefault(); e.stopPropagation();
       }
     };
-    // Block clicks on nav buttons (.__fb-dark-mode wraps prev/next but not mute)
+    // Block clicks inside .__fb-dark-mode (prev/next nav zones) — mute button is not in this wrapper
     const stopNavClick = e => {
-      const btn = e.target.closest('[role="button"]');
-      if (btn && btn.closest('.__fb-dark-mode') && btn.querySelector('svg[width="48"][height="48"]')) {
+      if (e.target.closest('.__fb-dark-mode')) {
         e.preventDefault(); e.stopPropagation();
       }
     };
