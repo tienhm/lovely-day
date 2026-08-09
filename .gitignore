@@ -12,3 +12,4 @@ START_HERE.md
 dev-*.bat
 dist/
 _build_tmp*/
+publish.ps1
