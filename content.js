@@ -305,7 +305,6 @@
 
     let videoConfirmEl = null;
     let videoConfirmed = false;
-    let navHideStyleEl = null;
     let urlWatcherId = null;
     const stopScrollEvent = e => { e.preventDefault(); e.stopPropagation(); };
     const stopScrollKey  = e => {
@@ -318,12 +317,6 @@
       window.addEventListener('wheel',     stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('touchmove', stopScrollEvent, { passive: false, capture: true });
       window.addEventListener('keydown',   stopScrollKey,   { capture: true });
-      if (!navHideStyleEl) {
-        navHideStyleEl = document.createElement('style');
-        navHideStyleEl.textContent = '[role="button"]:has(>svg[width="48"][height="48"]){display:none!important}';
-        (document.head || document.documentElement).appendChild(navHideStyleEl);
-      }
-      navHideStyleEl.disabled = false;
       // Fallback: poll URL every 150ms — catches any navigation mechanism (X button, etc.)
       if (!urlWatcherId) {
         urlWatcherId = setInterval(() => {
@@ -339,7 +332,6 @@
       window.removeEventListener('wheel',     stopScrollEvent, { capture: true });
       window.removeEventListener('touchmove', stopScrollEvent, { capture: true });
       window.removeEventListener('keydown',   stopScrollKey,   { capture: true });
-      if (navHideStyleEl) navHideStyleEl.disabled = true;
       if (urlWatcherId) { clearInterval(urlWatcherId); urlWatcherId = null; }
     }
 
