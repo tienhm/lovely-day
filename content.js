@@ -452,6 +452,17 @@
         };
       }
       try { history.pushState = wrap(history.pushState); history.replaceState = wrap(history.replaceState); } catch {}
+
+      // Block history.back/forward/go while watching (Facebook's up/down buttons use these)
+      try {
+        const origBack    = history.back.bind(history);
+        const origForward = history.forward.bind(history);
+        const origGo      = history.go.bind(history);
+        history.back    = function() { if (!videoConfirmed) origBack(); };
+        history.forward = function() { if (!videoConfirmed) origForward(); };
+        history.go      = function(n) { if (!videoConfirmed) origGo(n); };
+      } catch {}
+
       window.addEventListener('popstate', () => {
         redirectIfReels();
         resetVideoConfirmed();
